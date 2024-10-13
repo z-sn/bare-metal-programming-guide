@@ -13,12 +13,15 @@ endif
 
 build: firmware.bin
 
+# arm-none-eabi-gcc -T link.ld -nostdlib main.o -o firmware.elf
 firmware.elf: $(SOURCES)
 	arm-none-eabi-gcc $(SOURCES) $(CFLAGS) $(LDFLAGS) -o $@
 
+# arm-none-eabi-objcopy -O binary firmware.elf firmware.bin
 firmware.bin: firmware.elf
 	arm-none-eabi-objcopy -O binary $< $@
 
+# st-flash --reset write firmware.bin 0x8000000
 flash: firmware.bin
 	st-flash --reset write $< 0x8000000
 

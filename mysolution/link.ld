@@ -2,7 +2,8 @@ ENTRY(_reset);
 MEMORY {
   flash(rx)  : ORIGIN = 0x08000000, LENGTH = 2048k
   sram(rwx) : ORIGIN = 0x20000000, LENGTH = 192k  /* remaining 64k in a separate address space */
-}
+  /* Isn't it 256k, according to the datasheet 2.3.1 Embedded SRAM? */
+  }
 _estack     = ORIGIN(sram) + LENGTH(sram);    /* stack points to end of SRAM */
 
 SECTIONS {
