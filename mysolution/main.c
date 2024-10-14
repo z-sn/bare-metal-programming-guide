@@ -38,16 +38,13 @@ static inline void gpio_write(uint16_t pin, bool val) {
   gpio->BSRR = (1U << PINNO(pin)) << (val ? 0 : 16);
 }
 
-static inline void spin(volatile uint32_t count) {
-  while (count --) (void) 0;
-}
-
 /* SysTick interrupt */
 struct systick {
   volatile uint32_t CTRL, LOAD, VAL, CALIB;
 };
 
 #define SYSTICK ((struct systick *) 0xe000e010) // 2.2.2
+
 static inline void systick_init(uint32_t ticks) {
   if ((ticks - 1) > 0xffffff) return; // Systick timer is 24 bit
   SYSTICK->LOAD = ticks - 1;
@@ -55,18 +52,17 @@ static inline void systick_init(uint32_t ticks) {
   SYSTICK->CTRL = BIT(0) | BIT(1) | BIT(2); // Enable systick
   RCC->APB2ENR |= BIT(14);                  // Enable SYSCFG
 }
+
 static volatile uint32_t s_ticks; // volatile is important!!
 void SysTick_Handler(void) {
   s_ticks++;
 }
 
-// t: expiration time, prd: period, now; current time. Return true if expired
-bool timer_expired(uint32_t *t, uint32_t prd, uint32_t now) {
-  if (now + prd < *t) *t = 0;                   // Time wrapped? Reset timer
-  if (*t == 0) *t = now + prd;                  // First poll? Set expiration
-  if (*t > now) return false;                   // Not expired yet, return
-  *t = (now - *t) > prd ? now + prd : *t + prd; // Next expiration time
-  return true;
+/* This logic works because when the later (s_ticks) rolls over, its value will be close
+ * to UNINT_MAX as 2^32 will be added to it, making the value positive number.
+ */
+uint32_t elapsed_time(uint32_t later, uint32_t start){
+  return later - start;
 }
 
 int main(void) {
@@ -74,17 +70,15 @@ int main(void) {
   RCC->AHB1ENR |= BIT(PINBANK(led));     // Enable GPIO clock for LED
   gpio_set_mode(led, GPIO_MODE_OUTPUT);  // Set blue LED to output mode
   systick_init(16000000 / 1000);
-  uint32_t timer, period = 1000; // Declare timer and 500ms period
+  uint32_t start = s_ticks;
+  bool on = true;         // This block is executed
   for (;;) {
-    if (timer_expired(&timer, period, s_ticks)) {
-      static bool on;         // This block is executed
+    // 200ms timer
+    if (elapsed_time(s_ticks, start) > 200) {
       gpio_write(led, on);    // Every 'period' milliseconds
       on = !on;
+      start = s_ticks;
     }
-    //gpio_write(led, true);
-    //spin(999999);
-    //gpio_write(led, false);
-    //spin(999999);
   }
   return 0;
 }
