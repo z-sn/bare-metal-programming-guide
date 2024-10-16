@@ -1,11 +1,16 @@
 #include <inttypes.h>
 #include <stdbool.h>
+#include <stddef.h> // size_t
 
 #define BIT(x) (1UL << (x))
 #define PIN(bank, num) ((((bank) - 'A') << 8) | (num))
 #define PINNO(pin) (pin & 255)
 #define PINBANK(pin) (pin >> 8)
 
+static inline void spin(volatile uint32_t count) {
+  while (count--) asm("nop");
+  //while (count--) (void)0;
+}
 struct gpio {
   volatile uint32_t MODER, OTYPER, OSPEEDR, PUPDR, IDR, ODR, BSRR, LCKR, AFR[2];
 };
@@ -15,14 +20,9 @@ struct gpio {
 // Enum values are per dateasheet: 0, 1, 2, 3
 enum { GPIO_MODE_INPUT, GPIO_MODE_OUTPUT, GPIO_MODE_AF, GPIO_MODE_ANALOG };
 
-static inline void gpio_set_mode(uint16_t pin, uint8_t mode) {
-  struct gpio *gpio = GPIO(PINBANK(pin)); // GPIO bank
-  int n = PINNO(pin);                     // Pin number
-  gpio->MODER &= ~(3U << (n * 2));        // Clear existing setting
-  gpio->MODER |= (mode & 3) << (n * 2);   // Set new mode
-}
-
 // RCC (Reset and Clock Control) to enable peripherals
+#define RCC ((struct rcc *) 0x40023800)
+
 struct rcc {
   volatile uint32_t CR, PLLCFGR, CFGR, CIR, AHB1RSTR, AHB2RSTR, AHB3RSTR,
       RESERVED0, APB1RSTR, APB2RSTR, RESERVED1[2], AHB1ENR, AHB2ENR, AHB3ENR,
@@ -31,7 +31,13 @@ struct rcc {
       RESERVED6[2], SSCGR, PLLI2SCFGR;
 };
 
-#define RCC ((struct rcc *) 0x40023800)
+static inline void gpio_set_mode(uint16_t pin, uint8_t mode) {
+  struct gpio *gpio = GPIO(PINBANK(pin)); // GPIO bank
+  int n = PINNO(pin);                     // Pin number
+  RCC->AHB1LPENR |= BIT(PINBANK(pin));    // Enable GPIO clock
+  gpio->MODER &= ~(3U << (n * 2));        // Clear existing setting
+  gpio->MODER |= (mode & 3) << (n * 2);   // Set new mode
+}
 
 static inline void gpio_write(uint16_t pin, bool val) {
   struct gpio *gpio = GPIO(PINBANK(pin));
@@ -65,19 +71,76 @@ uint32_t elapsed_time(uint32_t later, uint32_t start){
   return later - start;
 }
 
+// USART
+struct uart {
+  volatile uint32_t SR, DR, BRR, CR1, CR2, CR3, GTPR;
+};
+
+#define UART1 ((struct uart *) 0x40011000)
+#define UART2 ((struct uart *) 0x40004400)
+#define UART3 ((struct uart *) 0x40004800)
+
+static inline void gpio_set_af(uint16_t pin, uint8_t af_num) {
+  struct gpio *gpio = GPIO(PINBANK(pin));     // GPIO bank
+  int n = PINNO(pin);                         // Pin number
+  gpio->AFR[n >> 3] &= ~(15UL << ((n & 7) * 4));
+  gpio->AFR[n >> 3] |= ((uint32_t)af_num) << ((n & 7) * 4);
+}
+
+#define FREQ 16000000 // CPU frequency, 16 MHz
+static inline void uart_init(struct uart *uart, unsigned long baud) {
+  uint8_t af = 7;           // Alternate function
+  uint16_t rx = 0, tx = 0;  // pins
+
+  if (uart == UART1) RCC->APB2ENR |= BIT(4);
+  if (uart == UART2) RCC->APB1ENR |= BIT(17);
+  if (uart == UART3) RCC->APB1ENR |= BIT(18);
+
+  if (uart == UART1) tx = PIN('A', 9), rx = PIN('A', 10);
+  if (uart == UART2) tx = PIN('A', 2), rx = PIN('A', 3);
+  if (uart == UART3) tx = PIN('D', 8), rx = PIN('D', 9);
+
+  gpio_set_mode(tx, GPIO_MODE_AF);
+  gpio_set_af(tx, af);
+  gpio_set_mode(rx, GPIO_MODE_AF);
+  gpio_set_af(rx, af);
+  uart->CR1 = 0;                            // Disable this UART1
+  uart->BRR = FREQ / baud;                  // FREQ is an UART bus frequency
+  uart->CR1 |= BIT(13) | BIT(2) | BIT(3);  // Set UE, RE, TE
+}
+
+static inline int uart_read_ready(struct uart *uart) {
+  return uart->SR & BIT(5); // If RXNE bit is set, data is ready
+}
+
+static inline uint8_t uart_read_byte(struct uart *uart) {
+  return (uint8_t)(uart->DR & 255);
+}
+
+static inline void uart_write_byte(struct uart *uart, uint8_t byte) {
+  uart->DR = byte;
+  while ((uart->SR & BIT(7)) == 0) spin(1);
+}
+
+static inline void uart_write_buf(struct uart *uart, char *buf, size_t len) {
+  while(len-- > 0) uart_write_byte(uart, *(uint8_t *)buf++);
+}
+
 int main(void) {
-  uint16_t led = PIN('B', 7);            // Blue LED
-  RCC->AHB1ENR |= BIT(PINBANK(led));     // Enable GPIO clock for LED
-  gpio_set_mode(led, GPIO_MODE_OUTPUT);  // Set blue LED to output mode
+  uint16_t led = PIN('B', 7);             // Blue LED
+  RCC->AHB1ENR |= BIT(PINBANK(led));      // Enable GPIO clock for LED
   systick_init(16000000 / 1000);
+  gpio_set_mode(led, GPIO_MODE_OUTPUT);
+  uart_init(UART3, 115200);               // Initialise UART
   uint32_t start = s_ticks;
   bool on = true;         // This block is executed
   for (;;) {
     // 200ms timer
-    if (elapsed_time(s_ticks, start) > 200) {
+    if (elapsed_time(s_ticks, start) > 500) {
       gpio_write(led, on);    // Every 'period' milliseconds
       on = !on;
       start = s_ticks;
+      uart_write_buf(UART3, "hi\r\n", 4); // Write message
     }
   }
   return 0;

@@ -1,0 +1,197 @@
+Archive member included to satisfy reference by file (symbol)
+
+/usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memset.o)
+                              /tmp/ccTJE806.o (memset)
+/usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memcpy.o)
+                              /tmp/ccTJE806.o (memcpy)
+
+Discarded input sections
+
+ .group         0x00000000        0xc /tmp/ccTJE806.o
+ .group         0x00000000        0xc /tmp/ccTJE806.o
+ .group         0x00000000        0xc /tmp/ccTJE806.o
+ .group         0x00000000        0xc /tmp/ccTJE806.o
+ .group         0x00000000        0xc /tmp/ccTJE806.o
+ .group         0x00000000        0xc /tmp/ccTJE806.o
+ .group         0x00000000        0xc /tmp/ccTJE806.o
+ .group         0x00000000        0xc /tmp/ccTJE806.o
+ .group         0x00000000        0xc /tmp/ccTJE806.o
+ .group         0x00000000        0xc /tmp/ccTJE806.o
+ .group         0x00000000        0xc /tmp/ccTJE806.o
+ .group         0x00000000        0xc /tmp/ccTJE806.o
+ .group         0x00000000        0xc /tmp/ccTJE806.o
+ .text          0x00000000        0x0 /tmp/ccTJE806.o
+ .data          0x00000000        0x0 /tmp/ccTJE806.o
+ .bss           0x00000000        0x0 /tmp/ccTJE806.o
+ .text.elapsed_time
+                0x00000000        0x4 /tmp/ccTJE806.o
+ .data          0x00000000        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memset.o)
+ .bss           0x00000000        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memset.o)
+ .data          0x00000000        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memcpy.o)
+ .bss           0x00000000        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memcpy.o)
+ .ARM.extab     0x00000000        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memcpy.o)
+ .eh_frame      0x00000000       0x2c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memcpy.o)
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+flash            0x08000000         0x00200000         xr
+sram             0x20000000         0x00030000         xrw
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD /tmp/ccTJE806.o
+LOAD /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a
+LOAD /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a
+                0x20030000                        _estack = (ORIGIN (sram) + LENGTH (sram))
+
+.vectors        0x08000000      0x1ac
+ *(.vectors)
+ .vectors       0x08000000      0x1ac /tmp/ccTJE806.o
+                0x08000000                tab
+
+.text           0x080001ac      0x36c
+ *(.text*)
+ .text.gpio_set_mode
+                0x080001ac       0x38 /tmp/ccTJE806.o
+ .text.SysTick_Handler
+                0x080001e4       0x10 /tmp/ccTJE806.o
+                0x080001e4                SysTick_Handler
+ .text.gpio_set_af.constprop.0
+                0x080001f4       0x30 /tmp/ccTJE806.o
+ .text.startup.main
+                0x08000224       0xd0 /tmp/ccTJE806.o
+                0x08000224                main
+ .text._reset   0x080002f4       0x4c /tmp/ccTJE806.o
+                0x080002f4                _reset
+ .text          0x08000340       0xa4 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memset.o)
+                0x08000340                memset
+ .text          0x080003e4      0x134 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memcpy.o)
+                0x080003e4                memcpy
+
+.glue_7         0x08000518        0x0
+ .glue_7        0x08000518        0x0 linker stubs
+
+.glue_7t        0x08000518        0x0
+ .glue_7t       0x08000518        0x0 linker stubs
+
+.vfp11_veneer   0x08000518        0x0
+ .vfp11_veneer  0x08000518        0x0 linker stubs
+
+.v4_bx          0x08000518        0x0
+ .v4_bx         0x08000518        0x0 linker stubs
+
+.iplt           0x08000518        0x0
+ .iplt          0x08000518        0x0 /tmp/ccTJE806.o
+
+.rodata         0x08000518        0x5
+ *(.rodata*)
+ .rodata.main.str1.1
+                0x08000518        0x5 /tmp/ccTJE806.o
+
+.ARM.exidx      0x08000520        0x8
+ .ARM.exidx     0x08000520        0x8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memcpy.o)
+
+.rel.dyn        0x08000528        0x0
+ .rel.iplt      0x08000528        0x0 /tmp/ccTJE806.o
+
+.data           0x20000000        0x0 load address 0x08000528
+                0x20000000                        _sdata = .
+ *(.first_data)
+ *(.data SORT_BY_NAME(.data.*))
+                0x20000000                        _edata = .
+                0x08000528                        _sidata = LOADADDR (.data)
+
+.igot.plt       0x20000000        0x0 load address 0x08000528
+ .igot.plt      0x20000000        0x0 /tmp/ccTJE806.o
+
+.bss            0x20000000        0x4 load address 0x08000528
+                0x20000000                        _sbss = .
+ *(.bss SORT_BY_NAME(.bss.*) COMMON)
+ .bss.s_ticks   0x20000000        0x4 /tmp/ccTJE806.o
+                0x20000004                        _ebss = .
+                0x20000008                        . = ALIGN (0x8)
+                0x20000008                        _end = .
+OUTPUT(firmware.elf elf32-littlearm)
+LOAD linker stubs
+
+.debug_info     0x00000000      0xa58
+ .debug_info    0x00000000      0x8f0 /tmp/ccTJE806.o
+ .debug_info    0x000008f0      0x135 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memset.o)
+ .debug_info    0x00000a25       0x33 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memcpy.o)
+
+.debug_abbrev   0x00000000      0x436
+ .debug_abbrev  0x00000000      0x357 /tmp/ccTJE806.o
+ .debug_abbrev  0x00000357       0xb7 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memset.o)
+ .debug_abbrev  0x0000040e       0x28 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memcpy.o)
+
+.debug_loclists
+                0x00000000      0x450
+ .debug_loclists
+                0x00000000      0x28e /tmp/ccTJE806.o
+ .debug_loclists
+                0x0000028e      0x1c2 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memset.o)
+
+.debug_aranges  0x00000000       0x88
+ .debug_aranges
+                0x00000000       0x48 /tmp/ccTJE806.o
+ .debug_aranges
+                0x00000048       0x20 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memset.o)
+ .debug_aranges
+                0x00000068       0x20 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memcpy.o)
+
+.debug_rnglists
+                0x00000000       0x68
+ .debug_rnglists
+                0x00000000       0x68 /tmp/ccTJE806.o
+
+.debug_macro    0x00000000     0x16ec
+ .debug_macro   0x00000000       0xe1 /tmp/ccTJE806.o
+ .debug_macro   0x000000e1      0xacc /tmp/ccTJE806.o
+ .debug_macro   0x00000bad       0x22 /tmp/ccTJE806.o
+ .debug_macro   0x00000bcf       0x54 /tmp/ccTJE806.o
+ .debug_macro   0x00000c23       0x2a /tmp/ccTJE806.o
+ .debug_macro   0x00000c4d       0x94 /tmp/ccTJE806.o
+ .debug_macro   0x00000ce1       0x43 /tmp/ccTJE806.o
+ .debug_macro   0x00000d24      0x103 /tmp/ccTJE806.o
+ .debug_macro   0x00000e27       0x3a /tmp/ccTJE806.o
+ .debug_macro   0x00000e61      0x34e /tmp/ccTJE806.o
+ .debug_macro   0x000011af       0x89 /tmp/ccTJE806.o
+ .debug_macro   0x00001238      0x379 /tmp/ccTJE806.o
+ .debug_macro   0x000015b1       0x22 /tmp/ccTJE806.o
+ .debug_macro   0x000015d3      0x119 /tmp/ccTJE806.o
+
+.debug_line     0x00000000      0x69f
+ .debug_line    0x00000000      0x430 /tmp/ccTJE806.o
+ .debug_line    0x00000430      0x1b6 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memset.o)
+ .debug_line    0x000005e6       0xb9 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memcpy.o)
+
+.debug_str      0x00000000     0x53b8
+ .debug_str     0x00000000     0x53b8 /tmp/ccTJE806.o
+                               0x5491 (size before relaxing)
+ .debug_str     0x000053b8      0x1ad /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memset.o)
+ .debug_str     0x000053b8       0xac /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memcpy.o)
+
+.comment        0x00000000       0x26
+ .comment       0x00000000       0x26 /tmp/ccTJE806.o
+                                 0x27 (size before relaxing)
+ .comment       0x00000026       0x27 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memset.o)
+
+.ARM.attributes
+                0x00000000       0x32
+ .ARM.attributes
+                0x00000000       0x34 /tmp/ccTJE806.o
+ .ARM.attributes
+                0x00000034       0x34 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memset.o)
+ .ARM.attributes
+                0x00000068       0x20 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memcpy.o)
+
+.debug_frame    0x00000000       0xb8
+ .debug_frame   0x00000000       0x8c /tmp/ccTJE806.o
+ .debug_frame   0x0000008c       0x2c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memset.o)
+
+.debug_line_str
+                0x00000000       0x99
+ .debug_line_str
+                0x00000000       0x99 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a(libc_a-memcpy.o)
