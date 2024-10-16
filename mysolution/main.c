@@ -34,7 +34,7 @@ struct rcc {
 static inline void gpio_set_mode(uint16_t pin, uint8_t mode) {
   struct gpio *gpio = GPIO(PINBANK(pin)); // GPIO bank
   int n = PINNO(pin);                     // Pin number
-  RCC->AHB1LPENR |= BIT(PINBANK(pin));    // Enable GPIO clock
+  RCC->AHB1ENR |= BIT(PINBANK(pin));    // Enable GPIO clock
   gpio->MODER &= ~(3U << (n * 2));        // Clear existing setting
   gpio->MODER |= (mode & 3) << (n * 2);   // Set new mode
 }
