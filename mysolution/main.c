@@ -1,6 +1,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stddef.h> // size_t
+#include <string.h> // memset
 
 #define BIT(x) (1UL << (x))
 #define PIN(bank, num) ((((bank) - 'A') << 8) | (num))
@@ -126,6 +127,30 @@ static inline void uart_write_buf(struct uart *uart, char *buf, size_t len) {
   while(len-- > 0) uart_write_byte(uart, *(uint8_t *)buf++);
 }
 
+void int_to_string(int num, char *str, size_t len) {
+  memset(str, '\0', len);
+  str[len - 2] = '\r';
+  str[len - 1] = '\n';
+
+  int i = 0;
+  do {
+    str[i++] = (char)(num % 10) + '0';
+    num /= 10;
+  } while (num > 0);
+
+  // Reverse
+  int start = 0;
+  int end = i - 1;
+  while (start < end) {
+    char temp = str[start];
+    str[start] = str[end];
+    str[end] = temp;
+    start++;
+    end--;
+  }
+}
+
+#define BUF_SIZE 64 
 int main(void) {
   uint16_t led = PIN('B', 7);             // Blue LED
   RCC->AHB1ENR |= BIT(PINBANK(led));      // Enable GPIO clock for LED
@@ -134,13 +159,17 @@ int main(void) {
   uart_init(UART3, 115200);               // Initialise UART
   uint32_t start = s_ticks;
   bool on = true;         // This block is executed
+  int i = 0;
+  char buf[BUF_SIZE]; // Reserve enough buf
   for (;;) {
     // 200ms timer
     if (elapsed_time(s_ticks, start) > 500) {
       gpio_write(led, on);    // Every 'period' milliseconds
       on = !on;
       start = s_ticks;
-      uart_write_buf(UART3, "hi\r\n", 4); // Write message
+      int_to_string(i, buf, BUF_SIZE);
+      uart_write_buf(UART3, buf, BUF_SIZE); // Write message
+      i++;
     }
   }
   return 0;
