@@ -129,8 +129,6 @@ static inline void uart_write_buf(struct uart *uart, char *buf, size_t len) {
 
 void int_to_string(int num, char *str, size_t len) {
   memset(str, '\0', len);
-  str[len - 2] = '\r';
-  str[len - 1] = '\n';
 
   int i = 0;
   do {
@@ -148,6 +146,9 @@ void int_to_string(int num, char *str, size_t len) {
     start++;
     end--;
   }
+  
+  str[len - 2] = '\r';
+  str[len - 1] = '\n';
 }
 
 #define BUF_SIZE 64 
