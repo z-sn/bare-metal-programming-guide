@@ -1,6 +1,11 @@
+#pragma once
+
 #include <inttypes.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stddef.h> // size_t
+#include <sys/stat.h>
+
 #include <string.h> // memset
 
 #define BIT(x) (1UL << (x))
@@ -59,18 +64,6 @@ static inline void systick_init(uint32_t ticks) {
   SYSTICK->VAL = 0;
   SYSTICK->CTRL = BIT(0) | BIT(1) | BIT(2); // Enable systick
   RCC->APB2ENR |= BIT(14);                  // Enable SYSCFG
-}
-
-static volatile uint32_t s_ticks; // volatile is important!!
-void SysTick_Handler(void) {
-  s_ticks++;
-}
-
-/* This logic works because when the later (s_ticks) rolls over, its value will be close
- * to UNINT_MAX as 2^32 will be added to it, making the value positive number.
- */
-uint32_t elapsed_time(uint32_t later, uint32_t start){
-  return later - start;
 }
 
 // USART
@@ -151,4 +144,3 @@ static inline void int_to_string(int num, char *str, size_t len) {
   str[len - 2] = '\r';
   str[len - 1] = '\n';
 }
-
