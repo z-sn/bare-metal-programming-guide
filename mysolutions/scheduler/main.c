@@ -5,12 +5,6 @@ void SysTick_Handler(void) {
   s_ticks++;
 }
 
-uint32_t SystemCoreClock = FREQ;
-void SystemInit(void) {
-  RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
-  SysTick_Config(SystemCoreClock / 1000);
-}
-
 /* This logic works because when the later (s_ticks) rolls over, its value will be close
  * to UNINT_MAX as 2^32 will be added to it, making the value positive number.
  */
@@ -29,13 +23,15 @@ int main(void) {
   int i = 0;
   for (;;) {
     // 200ms timer
-    if (elapsed_time(s_ticks, start) > 200) {
+    if (elapsed_time(s_ticks, start) > 500) {
       gpio_write(led, on);    // Every 'period' milliseconds
       on = !on;
       start = s_ticks;
+      //uart_write_buf(UART3, "hi\r\n", 4);
       printf("%d  : LED : %d, tick: %lu\r\n",i, on, s_ticks);
       i++;
     }
   }
   return 0;
 }
+
