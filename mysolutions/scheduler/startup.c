@@ -11,10 +11,11 @@ __attribute__((naked, noreturn)) void _reset(void) {
   for (;;) (void) 0;  // Infinite loop in the case if main() returns
 }
 
-extern void SysTick_Handler(void);  // Define in main.c
 extern void _estack(void);          // Defined in link.ld
+extern void PendSV_Handler(void);   // For context switch
+extern void SysTick_Handler(void);  // Define in main.c
 
 // 16 standard and 91 STM32-specific handlers
 __attribute__((section(".vectors"))) void (*const tab[16 + 91])(void) = {
-    _estack, _reset, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SysTick_Handler};
+    _estack, _reset, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, PendSV_Handler, SysTick_Handler};
 

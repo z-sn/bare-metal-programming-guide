@@ -8,6 +8,13 @@
 
 #include <string.h> // memset
 
+// Context switching
+#define ICSR (*((volatile uint32_t *)0xE000ED04)) // SCB + 0x04 
+#define PENDSVSET (1UL << 28)
+static inline void trigger_pendsv() {
+  ICSR |= PENDSVSET;
+}
+
 #define BIT(x) (1UL << (x))
 #define PIN(bank, num) ((((bank) - 'A') << 8) | (num))
 #define PINNO(pin) (pin & 255)

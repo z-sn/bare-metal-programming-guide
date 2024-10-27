@@ -1,5 +1,10 @@
 #include "hal.h"
 
+static volatile uint32_t s_pendsv_count;
+void PendSV_Handler(void) {
+  s_pendsv_count++;
+}
+
 static volatile uint32_t s_ticks;
 void SysTick_Handler(void) {
   s_ticks++;
@@ -36,8 +41,9 @@ int main(void) {
       gpio_write(led, on);    // Every 'period' milliseconds
       on = !on;
       start = s_ticks;
+      trigger_pendsv();
       //uart_write_buf(UART3, "hi\r\n", 4);
-      printf("%d  : LED : %d, tick: %lu\r\n",i, on, s_ticks);
+      printf("%d  : LED : %d, tick: %lu, pendsv : %lu\r\n",i, on, s_ticks, s_pendsv_count);
       i++;
     }
   }
