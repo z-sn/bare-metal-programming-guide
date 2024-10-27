@@ -12,6 +12,15 @@ static uint32_t elapsed_time(uint32_t later, uint32_t start){
   return later - start;
 }
 
+// Simple scheduler
+// 1. Set up SysTick Timer
+// 2. Define Task Context Structure
+// 3. Initialize Task Stacks
+// 4. Implement Context Save Routine
+// 5. Implement Context Restore Routine
+// 6. Implement Task Switching Mechanism
+// 7. Enable SysTick and Start Scheduler
+
 int main(void) {
   uint16_t led = PIN('B', 7);             // Blue LED
   RCC->AHB1ENR |= BIT(PINBANK(led));      // Enable GPIO clock for LED

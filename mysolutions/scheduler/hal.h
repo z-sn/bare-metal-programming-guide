@@ -121,26 +121,3 @@ static inline void uart_write_buf(struct uart *uart, char *buf, size_t len) {
   while(len-- > 0) uart_write_byte(uart, *(uint8_t *)buf++);
 }
 
-static inline void int_to_string(int num, char *str, size_t len) {
-  memset(str, '\0', len);
-
-  int i = 0;
-  do {
-    str[i++] = (char)(num % 10) + '0';
-    num /= 10;
-  } while (num > 0);
-
-  // Reverse
-  int start = 0;
-  int end = i - 1;
-  while (start < end) {
-    char temp = str[start];
-    str[start] = str[end];
-    str[end] = temp;
-    start++;
-    end--;
-  }
-  
-  str[len - 2] = '\r';
-  str[len - 1] = '\n';
-}
