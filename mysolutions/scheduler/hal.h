@@ -15,6 +15,10 @@ static inline void trigger_pendsv() {
   ICSR |= PENDSVSET;
 }
 
+struct core_regs {
+  uint32_t r0, r1, r2, r3,r12,lr,pc,psr;
+};
+
 #define BIT(x) (1UL << (x))
 #define PIN(bank, num) ((((bank) - 'A') << 8) | (num))
 #define PINNO(pin) (pin & 255)
