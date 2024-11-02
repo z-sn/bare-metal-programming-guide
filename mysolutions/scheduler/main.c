@@ -27,8 +27,10 @@ void task1 (void) {
   while (1) {
     printf("This is task 1, %d\r\n", i++);
     spin(1000000); 
+    if (i > 10) break;
   }
- s_task1_counter++;
+  s_task1_counter++;
+  printf("Exiting task1 \r\n");
 }
 // Stack pointe rfor task1
 static volatile uint32_t *task1_sp;
