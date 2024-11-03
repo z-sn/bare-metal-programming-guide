@@ -1,87 +1,124 @@
 #include "hal.h"
 
 #define TASK_STACK_SIZE 1024 // Size of the task stack in bytes
-static uint32_t task1_stack[TASK_STACK_SIZE/sizeof(uint32_t)]; // This is my stack  of 128 bytes
-static uint32_t task1_op_stack[TASK_STACK_SIZE/sizeof(uint32_t)]; // This is my stack  of 128 bytes
 void task1(void);
-static void print_core_regs(struct core_regs *, char *);
-static inline void save_core_regs_main();
-static inline void save_core_regs_pendsv();
-static inline void save_core_regs_task1();
-struct core_regs regs_main;
-struct core_regs regs_pendsv;
-struct core_regs regs_task1;
-
-static volatile uint32_t s_task1_counter;
-void task1 (void) {
-  printf("Starting task 1\r\n");
-  save_core_regs_task1();
-  /*
-  uint16_t led = PIN('B', 7);             // Blue LED
-  RCC->AHB1ENR |= BIT(PINBANK(led));      // Enable GPIO clock for LED
-  systick_init(16000000 / 1000);
-  gpio_set_mode(led, GPIO_MODE_OUTPUT);
-  uart_init(UART3, 115200);               // Initialise UART
-  */
-  int i = 0;
-  while (1) {
-    printf("This is task 1, %d\r\n", i++);
-    spin(1000000); 
-    if (i > 10) break;
-  }
-  s_task1_counter++;
-  printf("Exiting task1 \r\n");
-}
-// Stack pointe rfor task1
-static volatile uint32_t *task1_sp;
-static volatile uint32_t *task1_last_element;
+uint32_t * reschedule();
 
 // Function to set the Process Stack pointer  (PSP)
 void set_PSP(uint32_t sp) {
   __asm volatile("MSR PSP, %0" : : "r" (sp)); //Set the PSP to the provided value
 }
 
-void create_task(void) {
-  // Initialize the stack pointer for task1
-  // Point to the top of the stack. (Note that stack grows downward in M4)
-  task1_sp = (volatile uint32_t *)(&task1_stack[TASK_STACK_SIZE/sizeof(uint32_t)]);
-  task1_last_element = task1_sp;
+// Task Control Block definition
+#define NUM_CORE_REGS 21  // 16 General-purpose regs and 5 special regs    
+#define STACK_SIZE 1024 * 16 // 16 KB
 
-  // Set up initial Context (See Programming Manual 2.3.7 Exception entry and return. Figure 12)
-  // Need to set up, R0 to R3, R12, LR(Link Register), PC(Program Counter), xPSR(Program Status Register)
-  *(--task1_sp) = (1UL << 24); // xPSR: Set the Thumb bit (T bit) to indicate a valid state
-  *(--task1_sp) = (uint32_t)task1; // PC: Address of the task function
-  *(--task1_sp) = 0xFFFFFFFD; // LR: Link Register, typically 0 for initial task
-  task1_sp = (volatile uint32_t *)(&task1_op_stack[TASK_STACK_SIZE/sizeof(uint32_t)]);
-  task1_sp--;
-  //R12 to R0
-  for (int i = 0; i <= 12; i++) {
-    *(--task1_sp) = 0;
+struct TCB {
+  uint32_t task_id;
+  uint32_t stack[STACK_SIZE / sizeof(uint32_t)];
+  uint32_t *task_function;
+  uint32_t *sp;
+};
+
+struct TCB tcb_scheduler;
+struct TCB tcb_task1;
+struct TCB tcb_task2;
+
+// Scheduler helper functions
+void create_task_tcb(struct TCB *tcb)
+{
+  uint32_t *sp = &(tcb->stack[STACK_SIZE / sizeof(uint32_t)]);
+  *(--sp) = (1UL << 24); // xPSR: Set the Thumb bit (T bit) to indicate a valid state
+  *(--sp) = (uint32_t)tcb->task_function; // R15 : PC
+  *(--sp) = 0xFFFFFFFD; // R14 : LR, Return using PSP
+  *(--sp) = 0; // R12
+  *(--sp) = 0; // R3
+  *(--sp) = 0; // R2
+  *(--sp) = 0; // R1
+  *(--sp) = 0; // R0
+  // Set R4-R11
+  for (int i = 0; i < 8; i++) {
+    *(--sp) = 0;
   }
- }
+
+  tcb->sp = sp;
+  //tcb->r12_addr = sp;
+}
+
+static uint32_t task_switch_count = 0;
+void task_scheduler(void) {
+  while(1) {
+  printf("Scheduling %lu\r\n", task_switch_count++);
+    spin(1000000);
+  }
+}
+
+void task2 (void) {
+  int i = 0;
+  while (1) {
+    printf("This is task 2, %d\r\n", i++);
+    spin(4000000); 
+  }
+}
+
+static volatile uint32_t s_task1_counter;
+void task1 (void) {
+  int i = 0;
+  while (1) {
+    printf("This is task 1, %d\r\n", i++);
+    spin(4000000); 
+  }
+}
 
 static volatile uint32_t s_pendsv_count;
-//static volatile uint32_t *current_task_sp;
-//static volatile uint32_t *next_task_sp;
+static volatile uint32_t *current_task_sp;
+static volatile uint32_t *next_task_sp;
 void PendSV_Handler(void) {
-  //printf("PendSV \r\n");
-  //s_pendsv_count++;
+  //printf("PendSV Handler %lu \r\n", s_pendsv_count);
+  s_pendsv_count++;
+  // Context save
   __asm volatile (
-    "LDR R0, %[next_sp]    \n"
-    "LDMIA SP!, {R0-R12}   \n"
-    "LDR PC, =task1        \n"
+  "MRS R0, PSP            \n"
+  "STMDB R0!, {R4-R11}    \n"
+  "STR R0, %0             \n" // Save updated PSP to current_task_sp
+  : "=m" (current_task_sp)
+  :
+  : "memory", "r0"
+  );
+
+  //current_task_sp = (current_task_sp == tcb_task1.sp) ? tcb_task2.sp : tcb_task1.sp;
+  //next_task_sp = current_task_sp;
+  // Switch to the next task
+  __asm volatile (
+  "LDR R0, %0     \n"
+  "LDMIA R0!, {R4-R11}    \n"
+  "MSR PSP, R0            \n"
     :
-    : [next_sp] "m" (task1_sp)
+  : "m" (next_task_sp)
     : "memory", "r0"
   );
-  //save_core_regs_pendsv();
-  //printf("PendSV_Handler: task1_sp %p, task1 pc %p\r\n", task1_sp, task1);
+
+  current_task_sp = next_task_sp;
+  __asm volatile("BX LR");
 }
 
 static volatile uint32_t s_ticks;
 void SysTick_Handler(void) {
+  printf("SysTick Handler %lu \r\n", s_ticks);
   s_ticks++;
-}
+  if (s_ticks == 10) {
+    next_task_sp = tcb_task2.sp;
+    trigger_pendsv(); 
+  } else if (s_ticks == 20) {
+    current_task_sp = tcb_task2.sp;
+    next_task_sp = tcb_task1.sp;
+    trigger_pendsv(); 
+  } else if (s_ticks == 30) {
+    current_task_sp = tcb_task1.sp;
+    next_task_sp = tcb_task2.sp;
+    trigger_pendsv(); 
+  }
+ }
 
 /* This logic works because when the later (s_ticks) rolls over, its value will be close
  * to UNINT_MAX as 2^32 will be added to it, making the value positive number.
@@ -90,96 +127,62 @@ static uint32_t elapsed_time(uint32_t later, uint32_t start){
   return later - start;
 }
 
-static inline void save_core_regs_main() {
-  __asm volatile (
-    "MOV %0, R0        \n"
-    "MOV %1, R1        \n"
-    "MOV %2, R2        \n"
-    "MOV %3, R3        \n"
-    "MOV %4, R12       \n"
-    "MOV %5, LR        \n"
-    "MOV %6, PC        \n"
-    "MRS %7, PSR       \n"
-    : "=r" (regs_main.r0),
-    "=r" (regs_main.r1),
-    "=r" (regs_main.r2),
-    "=r" (regs_main.r3),
-    "=r" (regs_main.r12),
-    "=r" (regs_main.lr),
-    "=r" (regs_main.pc),
-    "=r" (regs_main.psr)
-  );
-}
 
-static inline void save_core_regs_pendsv() {
-  __asm volatile (
-    "MOV %0, R0         \n"
-    "MOV %1, R1         \n"
-    "MOV %2, R2         \n"
-    "MOV %3, R3         \n"
-    "MOV %4, R12        \n"
-    "MOV %5, LR         \n"
-    "MOV %6, PC         \n"
-    "MRS %7, PSR       \n"
-    : "=r" (regs_pendsv.r0),
-    "=r" (regs_pendsv.r1),
-    "=r" (regs_pendsv.r2),
-    "=r" (regs_pendsv.r3),
-    "=r" (regs_pendsv.r12),
-    "=r" (regs_pendsv.lr),
-    "=r" (regs_pendsv.pc),
-    "=r" (regs_pendsv.psr)
-  );
-}
-
-static inline void save_core_regs_task1() {
-  __asm volatile (
-    "MOV %0, R0         \n"
-    "MOV %1, R1         \n"
-    "MOV %2, R2         \n"
-    "MOV %3, R3         \n"
-    "MOV %4, R12        \n"
-    "MOV %5, LR         \n"
-    "MOV %6, PC         \n"
-    "MRS %7, PSR       \n"
-    : "=r" (regs_task1.r0),
-    "=r" (regs_task1.r1),
-    "=r" (regs_task1.r2),
-    "=r" (regs_task1.r3),
-    "=r" (regs_task1.r12),
-    "=r" (regs_task1.lr),
-    "=r" (regs_task1.pc),
-    "=r" (regs_task1.psr)
-  );
-}
-
-static void print_core_regs(struct core_regs *regs, char *str)
-{
-  printf("%s\r\n", str);
-  printf("xPSR : 0x%lX \r\n", regs->psr);
-  printf("PC   : 0x%lX \r\n", regs->pc);
-  printf("LR   : 0x%lX \r\n", regs->lr);
-  printf("R12  : 0x%lX \r\n", regs->r12);
-  printf("R3   : 0x%lX \r\n", regs->r3);
-  printf("R2   : 0x%lX \r\n", regs->r2);
-  printf("R1   : 0x%lX \r\n", regs->r1);
-  printf("R0   : 0x%lX \r\n", regs->r0);
+uint32_t current_task_id;
+static uint32_t sched_start = 0;
+uint32_t * reschedule() {
+  if (elapsed_time(s_ticks, sched_start) > 10) {
+    sched_start = s_ticks;
+    if (current_task_id == tcb_task1.task_id){
+      return tcb_task2.sp;
+    }
+    else {
+      return tcb_task1.sp;
+    }
+  }
+  return 0;
 }
 
 int main(void) {
   uint16_t led = PIN('B', 7);             // Blue LED
   RCC->AHB1ENR |= BIT(PINBANK(led));      // Enable GPIO clock for LED
-  systick_init(16000000 / 1000);
+  //systick_init(16000000 / 1000);
+  systick_init(16000000);
   gpio_set_mode(led, GPIO_MODE_OUTPUT);
   uart_init(UART3, 115200);               // Initialise UART
   uint32_t start = s_ticks;
   bool on = true;         // This block is executed
   int i = 0;
-  
+
+  // Create a scheduler task and 2 worker tasks
+  tcb_scheduler.task_id = 99;
+  tcb_scheduler.task_function = (uint32_t *)task_scheduler;
+  create_task_tcb(&tcb_scheduler);
+
+  tcb_task1.task_id = 1;
+  tcb_task1.task_function = (uint32_t *)task1;
+  create_task_tcb(&tcb_task1);
+
+  tcb_task2.task_id = 2;
+  tcb_task2.task_function = (uint32_t *)task2;
+  create_task_tcb(&tcb_task2);
+ 
+  current_task_sp = tcb_task1.sp;
+  current_task_id = tcb_task1.task_id;
+  next_task_sp = tcb_task2.sp;
+
+   // Set the PSP to the initial task's stack pointer and enable PSP
+   __asm volatile ("MSR PSP, %0" : : "r" (current_task_sp) : "memory");
+   __asm volatile ("MOV R0, #2"); // Set CONTROL register to use PSP in Thread mode
+   __asm volatile ("MSR CONTROL, R0");
+
+   // Trigger first task
+   //trigger_pendsv();
  // uint32_t s[10];
  // printf("s[0] = %p, s[9] = %p \r\n", &s[0], &s[9]);
  // spin(1000000000); 
 
+  /*
   save_core_regs_main();
   print_core_regs(&regs_main, "#### main ####");
   create_task();
@@ -191,10 +194,16 @@ int main(void) {
   printf("Done switching (This should not be printed if context is switched to task1.)\r\n");
   spin(1000000000); 
   printf("Wait done\r\n");
+*/
+  for (;;) {
 
+      printf("%d  : LED : %d, tick: %lu, pendsv : %lu, task1 counter : %lu\r\n",
+             i, on, s_ticks, s_pendsv_count, s_task1_counter);
+      spin(1000000);
+  }
   for (;;) {
     // 200ms timer
-    if (elapsed_time(s_ticks, start) > 500) {
+    if (elapsed_time(s_ticks, start) > 10) {
       gpio_write(led, on);    // Every 'period' milliseconds
       on = !on;
       start = s_ticks;
