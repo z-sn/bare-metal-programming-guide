@@ -11,7 +11,7 @@ void set_PSP(uint32_t sp) {
 
 // Task Control Block definition
 #define NUM_CORE_REGS 21  // 16 General-purpose regs and 5 special regs    
-#define STACK_SIZE 1024 * 16 // 16 KB
+#define STACK_SIZE 1024 * 2 // 2 KB
 
 struct TCB {
   uint32_t task_id;
@@ -42,7 +42,6 @@ void create_task_tcb(struct TCB *tcb)
   }
 
   tcb->sp = sp;
-  //tcb->r12_addr = sp;
 }
 
 static uint32_t task_switch_count = 0;
@@ -53,7 +52,9 @@ void task_scheduler(void) {
   }
 }
 
+static volatile uint32_t current_task_id;
 void task2 (void) {
+  //current_task_id = 2;
   int i = 0;
   while (1) {
     printf("This is task 2, %d\r\n", i++);
@@ -63,6 +64,7 @@ void task2 (void) {
 
 static volatile uint32_t s_task1_counter;
 void task1 (void) {
+  //current_task_id = 1;
   int i = 0;
   while (1) {
     printf("This is task 1, %d\r\n", i++);
@@ -71,12 +73,14 @@ void task1 (void) {
 }
 
 static volatile uint32_t s_pendsv_count;
-static volatile uint32_t *current_task_sp;
-static volatile uint32_t *next_task_sp;
+static uint32_t *current_task_sp;
+static uint32_t *next_task_sp;
+static uint32_t *sp_before, *sp_after;
 void PendSV_Handler(void) {
   //printf("PendSV Handler %lu \r\n", s_pendsv_count);
-  s_pendsv_count++;
+  //s_pendsv_count++;
   // Context save
+  sp_before = current_task_sp;
   __asm volatile (
   "MRS R0, PSP            \n"
   "STMDB R0!, {R4-R11}    \n"
@@ -85,9 +89,22 @@ void PendSV_Handler(void) {
   :
   : "memory", "r0"
   );
+  sp_after = current_task_sp;
 
-  //current_task_sp = (current_task_sp == tcb_task1.sp) ? tcb_task2.sp : tcb_task1.sp;
+  if (current_task_id == tcb_task1.task_id) {
+    tcb_task1.sp = current_task_sp;
+    current_task_sp = tcb_task2.sp;
+    next_task_sp = tcb_task2.sp;
+    current_task_id = 2;
+  } else {
+    tcb_task2.sp = current_task_sp;
+    current_task_sp = tcb_task1.sp;
+    next_task_sp = tcb_task1.sp;
+    current_task_id = 1;
+  }
+  //current_task_sp = (current_task_id == tcb_task1.sp) ? tcb_task2.sp : tcb_task1.sp;
   //next_task_sp = current_task_sp;
+
   // Switch to the next task
   __asm volatile (
   "LDR R0, %0     \n"
@@ -97,28 +114,48 @@ void PendSV_Handler(void) {
   : "m" (next_task_sp)
     : "memory", "r0"
   );
-
-  current_task_sp = next_task_sp;
   __asm volatile("BX LR");
+
 }
 
 static volatile uint32_t s_ticks;
 void SysTick_Handler(void) {
-  printf("SysTick Handler %lu \r\n", s_ticks);
+  printf("SysTick Handler %lu, cur_sp=%p, next_sp=%p, task1_sp=%p, task2_sp=%p, current_task_id=%ld, sp_before=%p, sp_after=%p \r\n", s_ticks, current_task_sp, next_task_sp, tcb_task1.sp, tcb_task2.sp, current_task_id, sp_before, sp_after);
   s_ticks++;
+
+  if (s_ticks % 10 == 0) {
+    trigger_pendsv();
+  }
+  #if 0
   if (s_ticks == 10) {
-    next_task_sp = tcb_task2.sp;
+    /*
+    if (current_task_id == 1) {
+      current_task_sp = tcb_task1.sp;
+      next_task_sp = tcb_task2.sp;
+      current_task_id = 2;
+    } else {
+      current_task_sp = tcb_task2.sp;
+      next_task_sp = tcb_task1.sp;
+      current_task_id = 1;
+    }
+    */
     trigger_pendsv(); 
   } else if (s_ticks == 20) {
-    current_task_sp = tcb_task2.sp;
-    next_task_sp = tcb_task1.sp;
-    trigger_pendsv(); 
-  } else if (s_ticks == 30) {
-    current_task_sp = tcb_task1.sp;
-    next_task_sp = tcb_task2.sp;
+    /*
+     if (current_task_id == 1) {
+      current_task_sp = tcb_task1.sp;
+      next_task_sp = tcb_task2.sp;
+      current_task_id = 2;
+    } else {
+      current_task_sp = tcb_task2.sp;
+      next_task_sp = tcb_task1.sp;
+      current_task_id = 1;
+    }
+    */
     trigger_pendsv(); 
   }
- }
+#endif
+}
 
 /* This logic works because when the later (s_ticks) rolls over, its value will be close
  * to UNINT_MAX as 2^32 will be added to it, making the value positive number.
@@ -128,7 +165,6 @@ static uint32_t elapsed_time(uint32_t later, uint32_t start){
 }
 
 
-uint32_t current_task_id;
 static uint32_t sched_start = 0;
 uint32_t * reschedule() {
   if (elapsed_time(s_ticks, sched_start) > 10) {
@@ -171,13 +207,26 @@ int main(void) {
   current_task_id = tcb_task1.task_id;
   next_task_sp = tcb_task2.sp;
 
+  printf("Before first pendsv. cur_sp=%p, next_sp=%p, task1_sp=%p, task2_sp=%p\r\n",
+         current_task_sp, next_task_sp, tcb_task1.sp, tcb_task2.sp);
+  /*
+  current_task_sp--;
+  printf("Before first pendsv. cur_sp=%p, next_sp=%p, task1_sp=%p, task2_sp=%p\r\n",
+         current_task_sp, next_task_sp, tcb_task1.sp, tcb_task2.sp);
+  spin(10000000);
+  */
    // Set the PSP to the initial task's stack pointer and enable PSP
    __asm volatile ("MSR PSP, %0" : : "r" (current_task_sp) : "memory");
    __asm volatile ("MOV R0, #2"); // Set CONTROL register to use PSP in Thread mode
    __asm volatile ("MSR CONTROL, R0");
 
+  printf("Before first pendsv. cur_sp=%p, next_sp=%p, task1_sp=%p, task2_sp=%p\r\n",
+         current_task_sp, next_task_sp, tcb_task1.sp, tcb_task2.sp);
    // Trigger first task
-   //trigger_pendsv();
+   trigger_pendsv();
+  for (;;){
+    spin(100000);
+  }
  // uint32_t s[10];
  // printf("s[0] = %p, s[9] = %p \r\n", &s[0], &s[9]);
  // spin(1000000000); 

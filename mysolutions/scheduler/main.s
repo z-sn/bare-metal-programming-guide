@@ -412,21 +412,21 @@ set_PSP:
 	.bss
 	.align	2
 	.type	tcb_scheduler, %object
-	.size	tcb_scheduler, 16396
+	.size	tcb_scheduler, 2060
 tcb_scheduler:
-	.space	16396
+	.space	2060
 	.global	tcb_task1
 	.align	2
 	.type	tcb_task1, %object
-	.size	tcb_task1, 16396
+	.size	tcb_task1, 2060
 tcb_task1:
-	.space	16396
+	.space	2060
 	.global	tcb_task2
 	.align	2
 	.type	tcb_task2, %object
-	.size	tcb_task2, 16396
+	.size	tcb_task2, 2060
 tcb_task2:
-	.space	16396
+	.space	2060
 	.text
 	.align	2
 	.global	create_task_tcb
@@ -443,7 +443,7 @@ create_task_tcb:
 	sub	sp, sp, #20
 	str	r0, [fp, #-16]
 	ldr	r3, [fp, #-16]
-	add	r3, r3, #16384
+	add	r3, r3, #2048
 	add	r3, r3, #4
 	str	r3, [fp, #-8]
 	ldr	r3, [fp, #-8]
@@ -453,8 +453,7 @@ create_task_tcb:
 	mov	r2, #16777216
 	str	r2, [r3]
 	ldr	r3, [fp, #-16]
-	add	r3, r3, #16384
-	ldr	r2, [r3, #4]
+	ldr	r2, [r3, #2052]
 	ldr	r3, [fp, #-8]
 	sub	r3, r3, #4
 	str	r3, [fp, #-8]
@@ -514,10 +513,8 @@ create_task_tcb:
 	cmp	r3, #7
 	ble	.L29
 	ldr	r3, [fp, #-16]
-	add	r3, r3, #16384
-	mov	r2, r3
-	ldr	r3, [fp, #-8]
-	str	r3, [r2, #8]
+	ldr	r2, [fp, #-8]
+	str	r2, [r3, #2056]
 	nop
 	add	sp, fp, #0
 	@ sp needed
@@ -564,6 +561,11 @@ task_scheduler:
 	.word	.LC0
 	.word	1000000
 	.size	task_scheduler, .-task_scheduler
+	.bss
+	.align	2
+current_task_id:
+	.space	4
+	.size	current_task_id, 4
 	.section	.rodata
 	.align	2
 .LC1:
@@ -652,6 +654,14 @@ current_task_sp:
 next_task_sp:
 	.space	4
 	.size	next_task_sp, 4
+	.align	2
+sp_before:
+	.space	4
+	.size	sp_before, 4
+	.align	2
+sp_after:
+	.space	4
+	.size	sp_after, 4
 	.text
 	.align	2
 	.global	PendSV_Handler
@@ -665,14 +675,13 @@ PendSV_Handler:
 	@ link register save eliminated.
 	str	fp, [sp, #-4]!
 	add	fp, sp, #0
-	ldr	r3, .L43
+	ldr	r3, .L45
 	ldr	r3, [r3]
-	add	r3, r3, #1
-	ldr	r2, .L43
+	ldr	r2, .L45+4
 	str	r3, [r2]
-	ldr	r3, .L43+4
+	ldr	r3, .L45
 	.syntax divided
-@ 80 "main.c" 1
+@ 84 "main.c" 1
 	MRS R0, PSP            
 STMDB R0!, {R4-R11}    
 STR R0, [r3]             
@@ -680,22 +689,58 @@ STR R0, [r3]
 @ 0 "" 2
 	.arm
 	.syntax unified
-	ldr	r3, .L43+8
+	ldr	r3, .L45
+	ldr	r3, [r3]
+	ldr	r2, .L45+8
+	str	r3, [r2]
+	ldr	r3, .L45+12
+	ldr	r2, [r3]
+	ldr	r3, .L45+16
+	ldr	r3, [r3]
+	cmp	r2, r3
+	bne	.L43
+	ldr	r3, .L45
+	ldr	r3, [r3]
+	ldr	r2, .L45+12
+	str	r3, [r2, #2056]
+	ldr	r3, .L45+20
+	ldr	r3, [r3, #2056]
+	ldr	r2, .L45
+	str	r3, [r2]
+	ldr	r3, .L45+20
+	ldr	r3, [r3, #2056]
+	ldr	r2, .L45+24
+	str	r3, [r2]
+	ldr	r3, .L45+16
+	mov	r2, #2
+	str	r2, [r3]
+	b	.L44
+.L43:
+	ldr	r3, .L45
+	ldr	r3, [r3]
+	ldr	r2, .L45+20
+	str	r3, [r2, #2056]
+	ldr	r3, .L45+12
+	ldr	r3, [r3, #2056]
+	ldr	r2, .L45
+	str	r3, [r2]
+	ldr	r3, .L45+12
+	ldr	r3, [r3, #2056]
+	ldr	r2, .L45+24
+	str	r3, [r2]
+	ldr	r3, .L45+16
+	mov	r2, #1
+	str	r2, [r3]
+.L44:
+	ldr	r3, .L45+24
 	.syntax divided
-@ 92 "main.c" 1
+@ 109 "main.c" 1
 	LDR R0, [r3]     
 LDMIA R0!, {R4-R11}    
 MSR PSP, R0            
 
 @ 0 "" 2
-	.arm
-	.syntax unified
-	ldr	r3, .L43+8
-	ldr	r3, [r3]
-	ldr	r2, .L43+4
-	str	r3, [r2]
-	.syntax divided
-@ 102 "main.c" 1
+@ 117 "main.c" 1
 	BX LR
 @ 0 "" 2
 	.arm
@@ -705,11 +750,15 @@ MSR PSP, R0
 	@ sp needed
 	ldr	fp, [sp], #4
 	bx	lr
-.L44:
+.L46:
 	.align	2
-.L43:
-	.word	s_pendsv_count
+.L45:
 	.word	current_task_sp
+	.word	sp_before
+	.word	sp_after
+	.word	tcb_task1
+	.word	current_task_id
+	.word	tcb_task2
 	.word	next_task_sp
 	.size	PendSV_Handler, .-PendSV_Handler
 	.bss
@@ -720,7 +769,9 @@ s_ticks:
 	.section	.rodata
 	.align	2
 .LC3:
-	.ascii	"SysTick Handler %lu \015\012\000"
+	.ascii	"SysTick Handler %lu, cur_sp=%p, next_sp=%p, task1_s"
+	.ascii	"p=%p, task2_sp=%p, current_task_id=%ld, sp_before=%"
+	.ascii	"p, sp_after=%p \015\012\000"
 	.text
 	.align	2
 	.global	SysTick_Handler
@@ -731,12 +782,34 @@ SysTick_Handler:
 	@ Function supports interworking.
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 1, uses_anonymous_args = 0
-	push	{fp, lr}
-	add	fp, sp, #4
+	push	{r4, r5, fp, lr}
+	add	fp, sp, #12
+	sub	sp, sp, #24
 	ldr	r3, .L50
-	ldr	r3, [r3]
-	mov	r1, r3
-	ldr	r0, .L50+4
+	ldr	lr, [r3]
+	ldr	r3, .L50+4
+	ldr	r4, [r3]
+	ldr	r3, .L50+8
+	ldr	r5, [r3]
+	ldr	r3, .L50+12
+	ldr	r3, [r3, #2056]
+	ldr	r2, .L50+16
+	ldr	r2, [r2, #2056]
+	ldr	r1, .L50+20
+	ldr	r1, [r1]
+	ldr	r0, .L50+24
+	ldr	r0, [r0]
+	ldr	ip, .L50+28
+	ldr	ip, [ip]
+	str	ip, [sp, #16]
+	str	r0, [sp, #12]
+	str	r1, [sp, #8]
+	str	r2, [sp, #4]
+	str	r3, [sp]
+	mov	r3, r5
+	mov	r2, r4
+	mov	r1, lr
+	ldr	r0, .L50+32
 	bl	printf
 	ldr	r3, .L50
 	ldr	r3, [r3]
@@ -744,64 +817,37 @@ SysTick_Handler:
 	ldr	r2, .L50
 	str	r3, [r2]
 	ldr	r3, .L50
-	ldr	r3, [r3]
-	cmp	r3, #10
-	bne	.L46
-	ldr	r3, .L50+8
-	add	r3, r3, #16384
-	ldr	r3, [r3, #8]
-	ldr	r2, .L50+12
-	str	r3, [r2]
-	bl	trigger_pendsv
-	b	.L49
-.L46:
-	ldr	r3, .L50
-	ldr	r3, [r3]
-	cmp	r3, #20
-	bne	.L48
-	ldr	r3, .L50+8
-	add	r3, r3, #16384
-	ldr	r3, [r3, #8]
-	ldr	r2, .L50+16
-	str	r3, [r2]
-	ldr	r3, .L50+20
-	add	r3, r3, #16384
-	ldr	r3, [r3, #8]
-	ldr	r2, .L50+12
-	str	r3, [r2]
-	bl	trigger_pendsv
-	b	.L49
-.L48:
-	ldr	r3, .L50
-	ldr	r3, [r3]
-	cmp	r3, #30
+	ldr	r1, [r3]
+	ldr	r3, .L50+36
+	umull	r2, r3, r1, r3
+	lsr	r2, r3, #3
+	mov	r3, r2
+	lsl	r3, r3, #2
+	add	r3, r3, r2
+	lsl	r3, r3, #1
+	sub	r2, r1, r3
+	cmp	r2, #0
 	bne	.L49
-	ldr	r3, .L50+20
-	add	r3, r3, #16384
-	ldr	r3, [r3, #8]
-	ldr	r2, .L50+16
-	str	r3, [r2]
-	ldr	r3, .L50+8
-	add	r3, r3, #16384
-	ldr	r3, [r3, #8]
-	ldr	r2, .L50+12
-	str	r3, [r2]
 	bl	trigger_pendsv
 .L49:
 	nop
-	sub	sp, fp, #4
+	sub	sp, fp, #12
 	@ sp needed
-	pop	{fp, lr}
+	pop	{r4, r5, fp, lr}
 	bx	lr
 .L51:
 	.align	2
 .L50:
 	.word	s_ticks
-	.word	.LC3
-	.word	tcb_task2
-	.word	next_task_sp
 	.word	current_task_sp
+	.word	next_task_sp
 	.word	tcb_task1
+	.word	tcb_task2
+	.word	current_task_id
+	.word	sp_before
+	.word	sp_after
+	.word	.LC3
+	.word	-858993459
 	.size	SysTick_Handler, .-SysTick_Handler
 	.align	2
 	.syntax unified
@@ -826,13 +872,7 @@ elapsed_time:
 	ldr	fp, [sp], #4
 	bx	lr
 	.size	elapsed_time, .-elapsed_time
-	.global	current_task_id
 	.bss
-	.align	2
-	.type	current_task_id, %object
-	.size	current_task_id, 4
-current_task_id:
-	.space	4
 	.align	2
 sched_start:
 	.space	4
@@ -870,13 +910,11 @@ reschedule:
 	cmp	r2, r3
 	bne	.L56
 	ldr	r3, .L58+16
-	add	r3, r3, #16384
-	ldr	r3, [r3, #8]
+	ldr	r3, [r3, #2056]
 	b	.L57
 .L56:
 	ldr	r3, .L58+8
-	add	r3, r3, #16384
-	ldr	r3, [r3, #8]
+	ldr	r3, [r3, #2056]
 	b	.L57
 .L55:
 	mov	r3, #0
@@ -898,8 +936,8 @@ reschedule:
 	.section	.rodata
 	.align	2
 .LC4:
-	.ascii	"%d  : LED : %d, tick: %lu, pendsv : %lu, task1 coun"
-	.ascii	"ter : %lu\015\012\000"
+	.ascii	"Before first pendsv. cur_sp=%p, next_sp=%p, task1_s"
+	.ascii	"p=%p, task2_sp=%p\015\012\000"
 	.text
 	.align	2
 	.global	main
@@ -947,35 +985,28 @@ main:
 	mov	r2, #99
 	str	r2, [r3]
 	ldr	r3, .L62+24
-	add	r3, r3, #16384
-	mov	r2, r3
-	ldr	r3, .L62+28
-	str	r3, [r2, #4]
+	ldr	r2, .L62+28
+	str	r2, [r3, #2052]
 	ldr	r0, .L62+24
 	bl	create_task_tcb
 	ldr	r3, .L62+32
 	mov	r2, #1
 	str	r2, [r3]
 	ldr	r3, .L62+32
-	add	r3, r3, #16384
-	mov	r2, r3
-	ldr	r3, .L62+36
-	str	r3, [r2, #4]
+	ldr	r2, .L62+36
+	str	r2, [r3, #2052]
 	ldr	r0, .L62+32
 	bl	create_task_tcb
 	ldr	r3, .L62+40
 	mov	r2, #2
 	str	r2, [r3]
 	ldr	r3, .L62+40
-	add	r3, r3, #16384
-	mov	r2, r3
-	ldr	r3, .L62+44
-	str	r3, [r2, #4]
+	ldr	r2, .L62+44
+	str	r2, [r3, #2052]
 	ldr	r0, .L62+40
 	bl	create_task_tcb
 	ldr	r3, .L62+32
-	add	r3, r3, #16384
-	ldr	r3, [r3, #8]
+	ldr	r3, [r3, #2056]
 	ldr	r2, .L62+48
 	str	r3, [r2]
 	ldr	r3, .L62+32
@@ -983,40 +1014,50 @@ main:
 	ldr	r2, .L62+52
 	str	r3, [r2]
 	ldr	r3, .L62+40
-	add	r3, r3, #16384
-	ldr	r3, [r3, #8]
+	ldr	r3, [r3, #2056]
 	ldr	r2, .L62+56
 	str	r3, [r2]
 	ldr	r3, .L62+48
+	ldr	r1, [r3]
+	ldr	r3, .L62+56
+	ldr	r2, [r3]
+	ldr	r3, .L62+32
+	ldr	r0, [r3, #2056]
+	ldr	r3, .L62+40
+	ldr	r3, [r3, #2056]
+	str	r3, [sp]
+	mov	r3, r0
+	ldr	r0, .L62+60
+	bl	printf
+	ldr	r3, .L62+48
 	ldr	r3, [r3]
 	.syntax divided
-@ 175 "main.c" 1
+@ 219 "main.c" 1
 	MSR PSP, r3
 @ 0 "" 2
-@ 176 "main.c" 1
+@ 220 "main.c" 1
 	MOV R0, #2
 @ 0 "" 2
-@ 177 "main.c" 1
+@ 221 "main.c" 1
 	MSR CONTROL, R0
 @ 0 "" 2
 	.arm
 	.syntax unified
-.L61:
-	ldrb	r1, [fp, #-5]	@ zero_extendqisi2
-	ldr	r3, .L62+20
-	ldr	r0, [r3]
-	ldr	r3, .L62+60
-	ldr	r3, [r3]
-	ldr	r2, .L62+64
-	ldr	r2, [r2]
-	str	r2, [sp, #4]
+	ldr	r3, .L62+48
+	ldr	r1, [r3]
+	ldr	r3, .L62+56
+	ldr	r2, [r3]
+	ldr	r3, .L62+32
+	ldr	r0, [r3, #2056]
+	ldr	r3, .L62+40
+	ldr	r3, [r3, #2056]
 	str	r3, [sp]
 	mov	r3, r0
-	mov	r2, r1
-	ldr	r1, [fp, #-12]
-	ldr	r0, .L62+68
+	ldr	r0, .L62+60
 	bl	printf
-	ldr	r0, .L62+72
+	bl	trigger_pendsv
+.L61:
+	ldr	r0, .L62+64
 	bl	spin
 	b	.L61
 .L63:
@@ -1037,9 +1078,7 @@ main:
 	.word	current_task_sp
 	.word	current_task_id
 	.word	next_task_sp
-	.word	s_pendsv_count
-	.word	s_task1_counter
 	.word	.LC4
-	.word	1000000
+	.word	100000
 	.size	main, .-main
 	.ident	"GCC: (15:13.2.rel1-2) 13.2.1 20231009"
