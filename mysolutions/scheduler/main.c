@@ -76,11 +76,13 @@ static volatile uint32_t s_pendsv_count;
 static uint32_t *current_task_sp;
 static uint32_t *next_task_sp;
 static uint32_t *sp_before, *sp_after;
+static bool firstPendSV = true;
 void PendSV_Handler(void) {
   //printf("PendSV Handler %lu \r\n", s_pendsv_count);
   //s_pendsv_count++;
   // Context save
   sp_before = current_task_sp;
+  if (firstPendSV != true) {
   __asm volatile (
   "MRS R0, PSP            \n"
   "STMDB R0!, {R4-R11}    \n"
@@ -89,6 +91,8 @@ void PendSV_Handler(void) {
   :
   : "memory", "r0"
   );
+}
+firstPendSV = false;
   sp_after = current_task_sp;
 
   if (current_task_id == tcb_task1.task_id) {
@@ -220,8 +224,6 @@ int main(void) {
    __asm volatile ("MOV R0, #2"); // Set CONTROL register to use PSP in Thread mode
    __asm volatile ("MSR CONTROL, R0");
 
-  printf("Before first pendsv. cur_sp=%p, next_sp=%p, task1_sp=%p, task2_sp=%p\r\n",
-         current_task_sp, next_task_sp, tcb_task1.sp, tcb_task2.sp);
    // Trigger first task
    trigger_pendsv();
   for (;;){
