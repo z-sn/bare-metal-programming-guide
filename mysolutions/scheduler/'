@@ -1,6 +1,4 @@
 #include "hal.h"
-// Task Manger definition
-#define NUM_TASK_MAX  32
 
 // Task Control Block definition
 #define STACK_SIZE 1024 * 2 // 2 KB
@@ -17,12 +15,14 @@ struct task_manager{
   volatile struct TCB *current_task;
   volatile struct TCB *next_task;
   volatile struct TCB *save_task;
-  struct TCB *tasks[NUM_TASK_MAX];
-  uint32_t num_tasks;
+  volatile uint32_t *current_task_sp;
+  volatile uint32_t *next_task_sp;
+  struct TCB *tasks[10];
+  uint32_t num_task;
 };
 
 static struct task_manager tm = {
-  .num_tasks = 0
+  .num_task = 0
 };
 
 // Scheduler helper functions
@@ -44,13 +44,13 @@ void create_task(struct TCB *tcb, void (*task_func)())
   }
 
   tcb->task_function = (uint32_t *)task_func;
-  tcb->task_id = tm.num_tasks + 1;
+  tcb->task_id = tm.num_task + 1;
   tcb->sp = sp;
-  tm.tasks[tm.num_tasks++] = tcb;
+  tm.tasks[tm.num_task++] = tcb;
 }
 
 void start_first_task() {
-  if (tm.num_tasks == 0) {
+  if (tm.num_task == 0) {
     return;
   }
 
@@ -78,12 +78,12 @@ void start_scheduler() {
 
 static uint32_t next_task_index = 1;
 static inline void reschedule(void) {
-  if (tm.num_tasks == 1) {
+  if (tm.num_task == 1) {
     return;
   }
 
   // Round robin
-  if (next_task_index >= tm.num_tasks) {
+  if (next_task_index >= tm.num_task) {
     next_task_index = 0;
   }
 
@@ -154,35 +154,57 @@ void task2 (void) {
 }
 
 void task3 (void) {
-  bool on = true;                         // This block is executed
-  uint16_t led = PIN('B', 7);             // Blue LED
+ uint16_t led = PIN('B', 7);             // Blue LED
   RCC->AHB1ENR |= BIT(PINBANK(led));      // Enable GPIO clock for LED
+  //systick_init(16000000 / 1000);
+  //systick_init(16000000);
   gpio_set_mode(led, GPIO_MODE_OUTPUT);
 
-  for (;;) {
-    printf("This is task 3. LED : %d\r\n", on);
-    gpio_write(led, on);
-    on = !on;
-    spin(1000000);
+    for (;;) {
+    // 200ms timer
+    if (elapsed_time(s_ticks, start) > 10) {
+      gpio_write(led, on);    // Every 'period' milliseconds
+      on = !on;
+      start = s_ticks;
+      //uart_write_buf(UART3, "hi\r\n", 4);
+      printf("%d  : LED : %d, tick: %lu\r\n", i, on, s_ticks);
+      i++;
+    }
   }
+
 }
 
 int main(void) {
-  uart_init(UART3, 115200);   // Initialise UART
-
+  uint16_t led = PIN('B', 7);             // Blue LED
+  RCC->AHB1ENR |= BIT(PINBANK(led));      // Enable GPIO clock for LED
+  //systick_init(16000000 / 1000);
+  //systick_init(16000000);
+  gpio_set_mode(led, GPIO_MODE_OUTPUT);
+  uart_init(UART3, 115200);               // Initialise UART
+  uint32_t start = s_ticks;
+  bool on = true;         // This block is executed
+  int i = 0;
   struct TCB tcb_task1;
   struct TCB tcb_task2;
-  struct TCB tcb_task3;
 
   create_task(&tcb_task1, task1);
   create_task(&tcb_task2, task2);
-  create_task(&tcb_task3, task3);
 
   start_scheduler();
-  
-  // Should not reach here.
-  for (;;);
+  for (;;){
+  }
 
+  for (;;) {
+    // 200ms timer
+    if (elapsed_time(s_ticks, start) > 10) {
+      gpio_write(led, on);    // Every 'period' milliseconds
+      on = !on;
+      start = s_ticks;
+      //uart_write_buf(UART3, "hi\r\n", 4);
+      printf("%d  : LED : %d, tick: %lu\r\n", i, on, s_ticks);
+      i++;
+    }
+  }
   return 0;
 }
 

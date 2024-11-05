@@ -145,6 +145,52 @@ gpio_set_mode:
 	.align	2
 	.syntax unified
 	.arm
+	.type	gpio_write, %function
+gpio_write:
+	@ Function supports interworking.
+	@ args = 0, pretend = 0, frame = 16
+	@ frame_needed = 1, uses_anonymous_args = 0
+	@ link register save eliminated.
+	str	fp, [sp, #-4]!
+	add	fp, sp, #0
+	sub	sp, sp, #20
+	mov	r3, r0
+	mov	r2, r1
+	strh	r3, [fp, #-14]	@ movhi
+	mov	r3, r2
+	strb	r3, [fp, #-15]
+	ldrh	r3, [fp, #-14]
+	lsr	r3, r3, #8
+	lsl	r3, r3, #16
+	lsr	r3, r3, #16
+	add	r3, r3, #1048576
+	add	r3, r3, #128
+	lsl	r3, r3, #10
+	str	r3, [fp, #-8]
+	ldrh	r3, [fp, #-14]
+	and	r3, r3, #255
+	mov	r2, #1
+	lsl	r2, r2, r3
+	ldrb	r3, [fp, #-15]	@ zero_extendqisi2
+	cmp	r3, #0
+	beq	.L11
+	mov	r3, #0
+	b	.L12
+.L11:
+	mov	r3, #16
+.L12:
+	lsl	r2, r2, r3
+	ldr	r3, [fp, #-8]
+	str	r2, [r3, #24]
+	nop
+	add	sp, fp, #0
+	@ sp needed
+	ldr	fp, [sp], #4
+	bx	lr
+	.size	gpio_write, .-gpio_write
+	.align	2
+	.syntax unified
+	.arm
 	.type	systick_init, %function
 systick_init:
 	@ Function supports interworking.
@@ -158,33 +204,33 @@ systick_init:
 	ldr	r3, [fp, #-8]
 	sub	r3, r3, #1
 	cmp	r3, #16777216
-	bcs	.L13
-	ldr	r2, .L14
+	bcs	.L16
+	ldr	r2, .L17
 	ldr	r3, [fp, #-8]
 	sub	r3, r3, #1
 	str	r3, [r2, #4]
-	ldr	r3, .L14
+	ldr	r3, .L17
 	mov	r2, #0
 	str	r2, [r3, #8]
-	ldr	r3, .L14
+	ldr	r3, .L17
 	mov	r2, #7
 	str	r2, [r3]
-	ldr	r3, .L14+4
+	ldr	r3, .L17+4
 	ldr	r3, [r3, #68]
-	ldr	r2, .L14+4
+	ldr	r2, .L17+4
 	orr	r3, r3, #16384
 	str	r3, [r2, #68]
-	b	.L10
-.L13:
+	b	.L13
+.L16:
 	nop
-.L10:
+.L13:
 	add	sp, fp, #0
 	@ sp needed
 	ldr	fp, [sp], #4
 	bx	lr
-.L15:
+.L18:
 	.align	2
-.L14:
+.L17:
 	.word	-536813552
 	.word	1073887232
 	.size	systick_init, .-systick_init
@@ -276,62 +322,62 @@ uart_init:
 	mov	r3, #0
 	strh	r3, [fp, #-8]	@ movhi
 	ldr	r3, [fp, #-16]
-	ldr	r2, .L24
-	cmp	r3, r2
-	bne	.L18
-	ldr	r3, .L24+4
-	ldr	r3, [r3, #68]
-	ldr	r2, .L24+4
-	orr	r3, r3, #16
-	str	r3, [r2, #68]
-.L18:
-	ldr	r3, [fp, #-16]
-	ldr	r2, .L24+8
-	cmp	r3, r2
-	bne	.L19
-	ldr	r3, .L24+4
-	ldr	r3, [r3, #64]
-	ldr	r2, .L24+4
-	orr	r3, r3, #131072
-	str	r3, [r2, #64]
-.L19:
-	ldr	r3, [fp, #-16]
-	ldr	r2, .L24+12
-	cmp	r3, r2
-	bne	.L20
-	ldr	r3, .L24+4
-	ldr	r3, [r3, #64]
-	ldr	r2, .L24+4
-	orr	r3, r3, #262144
-	str	r3, [r2, #64]
-.L20:
-	ldr	r3, [fp, #-16]
-	ldr	r2, .L24
+	ldr	r2, .L27
 	cmp	r3, r2
 	bne	.L21
+	ldr	r3, .L27+4
+	ldr	r3, [r3, #68]
+	ldr	r2, .L27+4
+	orr	r3, r3, #16
+	str	r3, [r2, #68]
+.L21:
+	ldr	r3, [fp, #-16]
+	ldr	r2, .L27+8
+	cmp	r3, r2
+	bne	.L22
+	ldr	r3, .L27+4
+	ldr	r3, [r3, #64]
+	ldr	r2, .L27+4
+	orr	r3, r3, #131072
+	str	r3, [r2, #64]
+.L22:
+	ldr	r3, [fp, #-16]
+	ldr	r2, .L27+12
+	cmp	r3, r2
+	bne	.L23
+	ldr	r3, .L27+4
+	ldr	r3, [r3, #64]
+	ldr	r2, .L27+4
+	orr	r3, r3, #262144
+	str	r3, [r2, #64]
+.L23:
+	ldr	r3, [fp, #-16]
+	ldr	r2, .L27
+	cmp	r3, r2
+	bne	.L24
 	mov	r3, #9
 	strh	r3, [fp, #-8]	@ movhi
 	mov	r3, #10
 	strh	r3, [fp, #-6]	@ movhi
-.L21:
+.L24:
 	ldr	r3, [fp, #-16]
-	ldr	r2, .L24+8
+	ldr	r2, .L27+8
 	cmp	r3, r2
-	bne	.L22
+	bne	.L25
 	mov	r3, #2
 	strh	r3, [fp, #-8]	@ movhi
 	mov	r3, #3
 	strh	r3, [fp, #-6]	@ movhi
-.L22:
+.L25:
 	ldr	r3, [fp, #-16]
-	ldr	r2, .L24+12
+	ldr	r2, .L27+12
 	cmp	r3, r2
-	bne	.L23
+	bne	.L26
 	mov	r3, #776
 	strh	r3, [fp, #-8]	@ movhi
-	ldr	r3, .L24+16
+	ldr	r3, .L27+16
 	strh	r3, [fp, #-6]	@ movhi
-.L23:
+.L26:
 	ldrh	r3, [fp, #-8]
 	mov	r1, #2
 	mov	r0, r3
@@ -354,7 +400,7 @@ uart_init:
 	mov	r2, #0
 	str	r2, [r3, #12]
 	ldr	r1, [fp, #-20]
-	ldr	r0, .L24+20
+	ldr	r0, .L27+20
 	bl	__aeabi_uidiv
 	mov	r3, r0
 	mov	r2, r3
@@ -371,9 +417,9 @@ uart_init:
 	@ sp needed
 	pop	{fp, lr}
 	bx	lr
-.L25:
+.L28:
 	.align	2
-.L24:
+.L27:
 	.word	1073811456
 	.word	1073887232
 	.word	1073759232
@@ -384,8 +430,8 @@ uart_init:
 	.bss
 	.align	2
 tm:
-	.space	64
-	.size	tm, 64
+	.space	144
+	.size	tm, 144
 	.text
 	.align	2
 	.global	create_task
@@ -456,8 +502,8 @@ create_task:
 	str	r2, [r3]
 	mov	r3, #0
 	str	r3, [fp, #-12]
-	b	.L27
-.L28:
+	b	.L30
+.L31:
 	ldr	r3, [fp, #-8]
 	sub	r3, r3, #4
 	str	r3, [fp, #-8]
@@ -467,25 +513,28 @@ create_task:
 	ldr	r3, [fp, #-12]
 	add	r3, r3, #1
 	str	r3, [fp, #-12]
-.L27:
+.L30:
 	ldr	r3, [fp, #-12]
 	cmp	r3, #7
-	ble	.L28
-	ldr	r3, .L29
-	ldr	r3, [r3, #60]
+	ble	.L31
+	ldr	r3, [fp, #-16]
+	ldr	r2, [fp, #-20]
+	str	r2, [r3, #4]
+	ldr	r3, .L32
+	ldr	r3, [r3, #140]
 	add	r2, r3, #1
 	ldr	r3, [fp, #-16]
 	str	r2, [r3, #8]
 	ldr	r3, [fp, #-16]
 	ldr	r2, [fp, #-8]
 	str	r2, [r3]
-	ldr	r3, .L29
-	ldr	r3, [r3, #60]
+	ldr	r3, .L32
+	ldr	r3, [r3, #140]
 	add	r2, r3, #1
-	ldr	r1, .L29
-	str	r2, [r1, #60]
-	ldr	r2, .L29
-	add	r3, r3, #4
+	ldr	r1, .L32
+	str	r2, [r1, #140]
+	ldr	r2, .L32
+	add	r3, r3, #2
 	lsl	r3, r3, #2
 	add	r3, r2, r3
 	ldr	r2, [fp, #-16]
@@ -495,9 +544,9 @@ create_task:
 	@ sp needed
 	ldr	fp, [sp], #4
 	bx	lr
-.L30:
+.L33:
 	.align	2
-.L29:
+.L32:
 	.word	tm
 	.size	create_task, .-create_task
 	.align	2
@@ -512,33 +561,33 @@ start_first_task:
 	@ link register save eliminated.
 	str	fp, [sp, #-4]!
 	add	fp, sp, #0
-	ldr	r3, .L35
-	ldr	r3, [r3, #60]
+	ldr	r3, .L38
+	ldr	r3, [r3, #140]
 	cmp	r3, #0
-	beq	.L34
-	ldr	r3, .L35
-	ldr	r3, [r3, #20]
-	ldr	r2, .L35
+	beq	.L37
+	ldr	r3, .L38
+	ldr	r3, [r3, #12]
+	ldr	r2, .L38
 	str	r3, [r2]
-	ldr	r3, .L35
-	ldr	r3, [r3, #20]
+	ldr	r3, .L38
+	ldr	r3, [r3, #12]
 	ldr	r3, [r3]
 	.syntax divided
-@ 58 "main.c" 1
+@ 59 "main.c" 1
 	MSR PSP, r3
 @ 0 "" 2
-@ 59 "main.c" 1
+@ 60 "main.c" 1
 	MOV R0, #2
 @ 0 "" 2
-@ 60 "main.c" 1
+@ 61 "main.c" 1
 	MSR CONTROL, R0
 @ 0 "" 2
 	.arm
 	.syntax unified
-	ldr	r3, .L35
-	ldr	r3, [r3, #20]
+	ldr	r3, .L38
+	ldr	r3, [r3, #12]
 	.syntax divided
-@ 62 "main.c" 1
+@ 63 "main.c" 1
 	LDR R0, [r3, #0]      
 MSR PSP, R0                
 LDR R0, [r3, #4]      
@@ -547,17 +596,17 @@ BX R0
 @ 0 "" 2
 	.arm
 	.syntax unified
-	b	.L31
-.L34:
+	b	.L34
+.L37:
 	nop
-.L31:
+.L34:
 	add	sp, fp, #0
 	@ sp needed
 	ldr	fp, [sp], #4
 	bx	lr
-.L36:
+.L39:
 	.align	2
-.L35:
+.L38:
 	.word	tm
 	.size	start_first_task, .-start_first_task
 	.align	2
@@ -571,7 +620,7 @@ start_scheduler:
 	@ frame_needed = 1, uses_anonymous_args = 0
 	push	{fp, lr}
 	add	fp, sp, #4
-	ldr	r0, .L38
+	ldr	r0, .L41
 	bl	systick_init
 	bl	start_first_task
 	nop
@@ -579,9 +628,9 @@ start_scheduler:
 	@ sp needed
 	pop	{fp, lr}
 	bx	lr
-.L39:
+.L42:
 	.align	2
-.L38:
+.L41:
 	.word	16000000
 	.size	start_scheduler, .-start_scheduler
 	.data
@@ -601,48 +650,52 @@ reschedule:
 	@ frame_needed = 1, uses_anonymous_args = 0
 	push	{fp, lr}
 	add	fp, sp, #4
-	ldr	r3, .L45
-	ldr	r3, [r3, #60]
+	ldr	r3, .L48
+	ldr	r3, [r3, #140]
 	cmp	r3, #1
-	beq	.L44
-	ldr	r3, .L45
-	ldr	r2, [r3, #60]
-	ldr	r3, .L45+4
+	beq	.L47
+	ldr	r3, .L48
+	ldr	r2, [r3, #140]
+	ldr	r3, .L48+4
 	ldr	r3, [r3]
 	cmp	r2, r3
-	bhi	.L43
-	ldr	r3, .L45+4
+	bhi	.L46
+	ldr	r3, .L48+4
 	mov	r2, #0
 	str	r2, [r3]
-.L43:
-	ldr	r3, .L45+4
+.L46:
+	ldr	r3, .L48+4
 	ldr	r3, [r3]
 	add	r2, r3, #1
-	ldr	r1, .L45+4
+	ldr	r1, .L48+4
 	str	r2, [r1]
-	ldr	r2, .L45
-	add	r3, r3, #4
+	ldr	r2, .L48
+	add	r3, r3, #2
 	lsl	r3, r3, #2
 	add	r3, r2, r3
 	ldr	r3, [r3, #4]
-	ldr	r2, .L45
+	ldr	r2, .L48
 	str	r3, [r2, #4]
-	ldr	r3, .L45
+	ldr	r3, .L48
+	ldr	r3, [r3]
+	ldr	r2, .L48
+	str	r3, [r2, #8]
+	ldr	r3, .L48
 	ldr	r3, [r3, #4]
-	ldr	r2, .L45
+	ldr	r2, .L48
 	str	r3, [r2]
 	bl	trigger_pendsv
-	b	.L40
-.L44:
+	b	.L43
+.L47:
 	nop
-.L40:
+.L43:
 	sub	sp, fp, #4
 	@ sp needed
 	pop	{fp, lr}
 	bx	lr
-.L46:
+.L49:
 	.align	2
-.L45:
+.L48:
 	.word	tm
 	.word	next_task_index
 	.size	reschedule, .-reschedule
@@ -663,35 +716,27 @@ SysTick_Handler:
 	@ frame_needed = 1, uses_anonymous_args = 0
 	push	{fp, lr}
 	add	fp, sp, #4
-	ldr	r3, .L50
+	ldr	r3, .L53
 	ldr	r3, [r3]
 	add	r3, r3, #1
-	ldr	r2, .L50
+	ldr	r2, .L53
 	str	r3, [r2]
-	ldr	r3, .L50
-	ldr	r1, [r3]
-	ldr	r3, .L50+4
-	umull	r2, r3, r1, r3
-	lsr	r2, r3, #3
-	mov	r3, r2
-	lsl	r3, r3, #2
-	add	r3, r3, r2
-	lsl	r3, r3, #1
-	sub	r2, r1, r3
-	cmp	r2, #0
-	bne	.L49
+	ldr	r3, .L53
+	ldr	r3, [r3]
+	and	r3, r3, #1
+	cmp	r3, #0
+	bne	.L52
 	bl	reschedule
-.L49:
+.L52:
 	nop
 	sub	sp, fp, #4
 	@ sp needed
 	pop	{fp, lr}
 	bx	lr
-.L51:
+.L54:
 	.align	2
-.L50:
+.L53:
 	.word	s_ticks
-	.word	-858993459
 	.size	SysTick_Handler, .-SysTick_Handler
 	.bss
 	.align	2
@@ -711,15 +756,15 @@ PendSV_Handler:
 	@ link register save eliminated.
 	str	fp, [sp, #-4]!
 	add	fp, sp, #0
-	ldr	r3, .L53
+	ldr	r3, .L56
 	ldr	r3, [r3]
 	add	r3, r3, #1
-	ldr	r2, .L53
+	ldr	r2, .L56
 	str	r3, [r2]
-	ldr	r3, .L53+4
+	ldr	r3, .L56+4
 	ldr	r3, [r3, #8]
 	.syntax divided
-@ 108 "main.c" 1
+@ 109 "main.c" 1
 	MRS R0, PSP            
 STMDB R0!, {R4-R11}    
 STR R0, [r3]             
@@ -727,16 +772,16 @@ STR R0, [r3]
 @ 0 "" 2
 	.arm
 	.syntax unified
-	ldr	r3, .L53+4
+	ldr	r3, .L56+4
 	ldr	r3, [r3, #4]
 	.syntax divided
-@ 118 "main.c" 1
+@ 119 "main.c" 1
 	LDR R0, [r3]     
 LDMIA R0!, {R4-R11}    
 MSR PSP, R0            
 
 @ 0 "" 2
-@ 128 "main.c" 1
+@ 129 "main.c" 1
 	BX LR
 @ 0 "" 2
 	.arm
@@ -746,9 +791,9 @@ MSR PSP, R0
 	@ sp needed
 	ldr	fp, [sp], #4
 	bx	lr
-.L54:
+.L57:
 	.align	2
-.L53:
+.L56:
 	.word	s_pendsv_count
 	.word	tm
 	.size	PendSV_Handler, .-PendSV_Handler
@@ -771,19 +816,19 @@ task1:
 	sub	sp, sp, #8
 	mov	r3, #0
 	str	r3, [fp, #-8]
-.L56:
+.L59:
 	ldr	r3, [fp, #-8]
 	add	r2, r3, #1
 	str	r2, [fp, #-8]
 	mov	r1, r3
-	ldr	r0, .L57
+	ldr	r0, .L60
 	bl	printf
-	ldr	r0, .L57+4
+	ldr	r0, .L60+4
 	bl	spin
-	b	.L56
-.L58:
+	b	.L59
+.L61:
 	.align	2
-.L57:
+.L60:
 	.word	.LC0
 	.word	1000000
 	.size	task1, .-task1
@@ -804,25 +849,94 @@ task2:
 	push	{fp, lr}
 	add	fp, sp, #4
 	sub	sp, sp, #8
-	ldr	r3, .L61
+	ldr	r3, .L64
 	str	r3, [fp, #-8]
-.L60:
+.L63:
 	ldr	r3, [fp, #-8]
 	sub	r2, r3, #1
 	str	r2, [fp, #-8]
 	mov	r1, r3
-	ldr	r0, .L61+4
+	ldr	r0, .L64+4
 	bl	printf
-	ldr	r0, .L61+8
+	ldr	r0, .L64+8
 	bl	spin
-	b	.L60
-.L62:
+	b	.L63
+.L65:
 	.align	2
-.L61:
+.L64:
 	.word	10000000
 	.word	.LC1
 	.word	1000000
 	.size	task2, .-task2
+	.section	.rodata
+	.align	2
+.LC2:
+	.ascii	"This is task 3. LED : %d\015\012\000"
+	.text
+	.align	2
+	.global	task3
+	.syntax unified
+	.arm
+	.type	task3, %function
+task3:
+	@ Function supports interworking.
+	@ args = 0, pretend = 0, frame = 8
+	@ frame_needed = 1, uses_anonymous_args = 0
+	push	{fp, lr}
+	add	fp, sp, #4
+	sub	sp, sp, #8
+	mov	r3, #1
+	strb	r3, [fp, #-5]
+	ldr	r3, .L68
+	strh	r3, [fp, #-8]	@ movhi
+	ldr	r3, .L68+4
+	ldr	r2, [r3, #48]
+	ldrh	r3, [fp, #-8]
+	lsr	r3, r3, #8
+	lsl	r3, r3, #16
+	lsr	r3, r3, #16
+	mov	r1, r3
+	mov	r3, #1
+	lsl	r3, r3, r1
+	ldr	r1, .L68+4
+	orr	r3, r2, r3
+	str	r3, [r1, #48]
+	ldrh	r3, [fp, #-8]
+	mov	r1, #1
+	mov	r0, r3
+	bl	gpio_set_mode
+.L67:
+	ldrb	r3, [fp, #-5]	@ zero_extendqisi2
+	mov	r1, r3
+	ldr	r0, .L68+8
+	bl	printf
+	ldrb	r2, [fp, #-5]	@ zero_extendqisi2
+	ldrh	r3, [fp, #-8]
+	mov	r1, r2
+	mov	r0, r3
+	bl	gpio_write
+	ldrb	r3, [fp, #-5]	@ zero_extendqisi2
+	cmp	r3, #0
+	movne	r3, #1
+	moveq	r3, #0
+	and	r3, r3, #255
+	eor	r3, r3, #1
+	and	r3, r3, #255
+	strb	r3, [fp, #-5]
+	ldrb	r3, [fp, #-5]
+	and	r3, r3, #1
+	strb	r3, [fp, #-5]
+	ldr	r0, .L68+12
+	bl	spin
+	b	.L67
+.L69:
+	.align	2
+.L68:
+	.word	263
+	.word	1073887232
+	.word	.LC2
+	.word	1000000
+	.size	task3, .-task3
 	.align	2
 	.global	main
 	.syntax unified
@@ -830,67 +944,43 @@ task2:
 	.type	main, %function
 main:
 	@ Function supports interworking.
-	@ args = 0, pretend = 0, frame = 4136
+	@ args = 0, pretend = 0, frame = 6184
 	@ frame_needed = 1, uses_anonymous_args = 0
 	push	{fp, lr}
 	add	fp, sp, #4
-	sub	sp, sp, #4096
+	sub	sp, sp, #6144
 	sub	sp, sp, #40
-	ldr	r3, .L65
-	strh	r3, [fp, #-12]	@ movhi
-	ldr	r3, .L65+4
-	ldr	r2, [r3, #48]
-	ldrh	r3, [fp, #-12]
-	lsr	r3, r3, #8
-	lsl	r3, r3, #16
-	lsr	r3, r3, #16
-	mov	r1, r3
-	mov	r3, #1
-	lsl	r3, r3, r1
-	ldr	r1, .L65+4
-	orr	r3, r2, r3
-	str	r3, [r1, #48]
-	ldr	r0, .L65+8
-	bl	systick_init
-	ldrh	r3, [fp, #-12]
-	mov	r1, #1
-	mov	r0, r3
-	bl	gpio_set_mode
-	ldr	r1, .L65+12
-	ldr	r0, .L65+16
+	ldr	r1, .L72
+	ldr	r0, .L72+4
 	bl	uart_init
-	ldr	r3, .L65+20
-	ldr	r3, [r3]
-	str	r3, [fp, #-8]
-	mov	r3, #1
-	strb	r3, [fp, #-9]
-	mov	r3, #0
-	str	r3, [fp, #-16]
-	sub	r3, fp, #2064
+	sub	r3, fp, #2048
 	sub	r3, r3, #4
-	sub	r3, r3, #8
-	ldr	r1, .L65+24
+	sub	r3, r3, #12
+	ldr	r1, .L72+8
 	mov	r0, r3
 	bl	create_task
 	sub	r3, fp, #4096
 	sub	r3, r3, #4
+	sub	r3, r3, #24
+	ldr	r1, .L72+12
+	mov	r0, r3
+	bl	create_task
+	sub	r3, fp, #6144
+	sub	r3, r3, #4
 	sub	r3, r3, #36
-	ldr	r1, .L65+28
+	ldr	r1, .L72+16
 	mov	r0, r3
 	bl	create_task
 	bl	start_scheduler
-.L64:
-	b	.L64
-.L66:
+.L71:
+	b	.L71
+.L73:
 	.align	2
-.L65:
-	.word	263
-	.word	1073887232
-	.word	16000000
+.L72:
 	.word	115200
 	.word	1073760256
-	.word	s_ticks
 	.word	task1
 	.word	task2
+	.word	task3
 	.size	main, .-main
 	.ident	"GCC: (15:13.2.rel1-2) 13.2.1 20231009"
