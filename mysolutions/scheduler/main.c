@@ -1,4 +1,6 @@
 #include "hal.h"
+// System SysTick
+#define SYSTICK_INITIAL_LOAD  (16000000 / 1000) // Every millisecond
 // Task Manger definition
 #define NUM_TASK_MAX  32
 
@@ -72,7 +74,7 @@ void start_first_task() {
 }
 
 void start_scheduler() {
-  systick_init(16000000);
+  systick_init(SYSTICK_INITIAL_LOAD);
   start_first_task();
 }
 
@@ -96,7 +98,7 @@ static inline void reschedule(void) {
 static volatile uint32_t s_ticks;
 void SysTick_Handler(void) {
   s_ticks++;
-  if (s_ticks % 2 == 0) {
+  if (s_ticks % 2000 == 0) {
     reschedule();
   }
 }
@@ -127,7 +129,6 @@ void PendSV_Handler(void) {
 
   // Switch to new task
   __asm volatile("BX LR");
-
 }
 
 /* This logic works because when the later (s_ticks) rolls over, its value will be close
