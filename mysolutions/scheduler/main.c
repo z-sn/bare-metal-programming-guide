@@ -30,7 +30,6 @@ void create_task(struct TCB *tcb, void (*task_func)())
 {
   uint32_t *sp = &(tcb->stack[STACK_SIZE / sizeof(uint32_t)]);
   *(--sp) = (1UL << 24); // xPSR: Set the Thumb bit (T bit) to indicate a valid state
-  //*(--sp) = (uint32_t)tcb->task_function; // R15 : PC
   *(--sp) = (uint32_t)task_func; // R15 : PC
   *(--sp) = 0xFFFFFFFD; // R14 : LR, Return using PSP
   *(--sp) = 0; // R12
@@ -46,7 +45,8 @@ void create_task(struct TCB *tcb, void (*task_func)())
   tcb->task_function = (uint32_t *)task_func;
   tcb->task_id = tm.num_tasks + 1;
   tcb->sp = sp;
-  tm.tasks[tm.num_tasks++] = tcb;
+  tm.tasks[tm.num_tasks] = tcb;
+  tm.num_tasks++;
 }
 
 void start_first_task() {
