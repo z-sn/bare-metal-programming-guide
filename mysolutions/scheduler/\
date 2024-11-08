@@ -1,7 +1,4 @@
 #include "hal.h"
-
-static inline void reschedule(void);
-
 // System SysTick
 #define SYSTICK_INITIAL_LOAD  (16000000 / 1000) // Every millisecond
 // Task Manger definition
@@ -16,9 +13,6 @@ struct TCB {
   uint32_t *task_function;
   uint32_t task_id;
   uint32_t stack[STACK_SIZE / sizeof(uint32_t)];
-  uint32_t sleep_start_ticks;
-  uint32_t sleep_end_tics;
-  uint32_t state;
 };
 
 struct task_manager{
@@ -33,25 +27,6 @@ static struct task_manager tm = {
   .num_tasks = 0
 };
 
-enum{
-  TASK_READY,
-  TASK_RUNNING,
-  TASK_PENDING
-};
-
-static volatile uint32_t s_ticks;
-
-// Sleep
-// Task state: Ready, Running, Pending (sleep)
-// Ready -> Running (round robin)
-// Running -> Ready (context switch due to time quota)
-// Running -> Pending (sleep)
-// Pending -> Ready (done sleeping)
-void sleep(uint32_t ms) {
-  tm.current_task->sleep_start_ticks = s_ticks;
-  tm.current_task->sleep_start_ticks = s_ticks + ms;
-  reschedule();
-}
 // Scheduler helper functions
 void create_task(struct TCB *tcb, void (*task_func)())
 {
@@ -72,7 +47,6 @@ void create_task(struct TCB *tcb, void (*task_func)())
   tcb->task_function = (uint32_t *)task_func;
   tcb->task_id = tm.num_tasks + 1;
   tcb->sp = sp;
-  tcb->state = TASK_READY;
   tm.tasks[tm.num_tasks] = tcb;
   tm.num_tasks++;
 }
@@ -111,24 +85,17 @@ static inline void reschedule(void) {
   }
 
   // Round robin
-  for (uint32_t i = 0; i < tm.num_tasks; i++) {
-    if (next_task_index >= tm.num_tasks) {
-      next_task_index = 0;
-    }
-    if (tm.tasks[next_task_index]->state == TASK_READY) {
-      tm.tasks[next_task_index]->state = TASK_RUNNING;
-      break;
-    }
-    next_task_index++;
+  if (next_task_index >= tm.num_tasks) {
+    next_task_index = 0;
   }
 
-  tm.next_task = tm.tasks[next_task_index];
+  tm.next_task = tm.tasks[next_task_index++];
   tm.save_task = tm.current_task;
-  tm.current_task->state = TASK_READY;
   tm.current_task = tm.next_task;
   trigger_pendsv();
 }
 
+static volatile uint32_t s_ticks;
 void SysTick_Handler(void) {
   s_ticks++;
   if (s_ticks % 2000 == 0) {
