@@ -171,6 +171,13 @@ static inline uint32_t elapsed_time(uint32_t later, uint32_t start){
   return later - start;
 }
 
+void idle(void) {
+  printf("Start idle task\r\n");
+  while(1) {
+    asm("nop");
+  }
+}
+
 void task1 (void) {
   int i = 0;
   while (1) {
@@ -204,13 +211,15 @@ void task3 (void) {
 int main(void) {
   uart_init(UART3, 115200);   // Initialise UART
 
+  struct TCB tcb_idle_task;
   struct TCB tcb_task1;
-  struct TCB tcb_task2;
-  struct TCB tcb_task3;
+  //struct TCB tcb_task2;
+  //struct TCB tcb_task3;
 
+  create_task(&tcb_idle_task, idle);
   create_task(&tcb_task1, task1);
-  create_task(&tcb_task2, task2);
-  create_task(&tcb_task3, task3);
+  //create_task(&tcb_task2, task2);
+  //create_task(&tcb_task3, task3);
 
   start_scheduler();
   
