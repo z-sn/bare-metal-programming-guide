@@ -17,7 +17,7 @@ struct TCB {
   uint32_t task_id;
   uint32_t stack[STACK_SIZE / sizeof(uint32_t)];
   uint32_t sleep_start_ticks;
-  uint32_t sleep_end_tics;
+  uint32_t sleep_end_ticks;
   uint32_t state;
 };
 
@@ -49,7 +49,8 @@ static volatile uint32_t s_ticks;
 // Pending -> Ready (done sleeping)
 void sleep(uint32_t ms) {
   tm.current_task->sleep_start_ticks = s_ticks;
-  tm.current_task->sleep_start_ticks = s_ticks + ms;
+  tm.current_task->sleep_end_ticks = s_ticks + ms;
+  // Should switch to idle task
   reschedule();
 }
 // Scheduler helper functions
