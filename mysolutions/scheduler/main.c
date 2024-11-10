@@ -40,7 +40,35 @@ enum{
   TASK_PENDING
 };
 
-static volatile uint32_t s_ticks;
+// Mutex
+typedef struct {
+  volatile uint8_t locked;
+  int owner;
+} Mutex;
+
+Mutex mtx = {.locked = 0, .owner =  -1};
+void mutex_lock(Mutex *mutex) {
+  while (1) {
+    if (__atomic_compare_exchange_n(&mutex->locked,
+                                    &(uint8_t){0},
+                                    1,
+                                    false,
+                                    __ATOMIC_ACQUIRE,
+                                    __ATOMIC_RELAXED)) {
+      mutex->owner = (int)tm.current_task->task_id;
+      return;
+    }
+    //trigger_pendsv();
+    //__asm("WFI");
+  }
+}
+
+void mutex_unlock(Mutex *mutex) {
+  if (mutex->owner == (int)tm.current_task->task_id) {
+    mutex->locked = 0;
+    mutex->owner = -1;
+  }
+}
 
 void sleep(uint32_t ms) {
   volatile struct TCB *task = tm.current_task;
@@ -132,6 +160,7 @@ void update_sleep_ticks(void) {
   }
 }
 
+static volatile uint32_t s_ticks;
 void SysTick_Handler(void) {
   s_ticks++;
   update_sleep_ticks();
@@ -173,6 +202,8 @@ static inline uint32_t elapsed_time(uint32_t later, uint32_t start){
   return later - start;
 }
 
+static volatile int shared_counter = 0;
+
 void idle(void) {
   //int i = 0;
   while(1) {
@@ -184,16 +215,24 @@ struct TCB tcb_task1;
 void task1 (void) {
   int i = 0;
   while (1) {
-    printf("This is task 1, %d\r\n", i++);
-    sleep(10000);
+    mutex_lock(&mtx);
+    int n = shared_counter;
+    sleep(1000);
+    printf("This is task 1, %d, n = %d shared_counter %d\r\n", i++, n, shared_counter);
+    mutex_unlock(&mtx);
+    //sleep(1000);
   }
 }
 
 void task2 (void) {
-  int i = 10000000;
+  //int i = 9999999;
   while (1) {
-    printf("This is task 2, %d\r\n", i--);
-    sleep(3000);
+    mutex_lock(&mtx);
+    shared_counter++;
+    //printf("This is task 2, %d, shared_counter %d\r\n", i--, shared_counter);
+    mutex_unlock(&mtx);
+    //printf("This is task 2, %d, shared_counter %d\r\n", i++, shared_counter);
+    //sleep(10);
   }
 }
 
