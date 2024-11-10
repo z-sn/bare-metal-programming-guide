@@ -42,12 +42,6 @@ enum{
 
 static volatile uint32_t s_ticks;
 
-// Sleep
-// Task state: Ready, Running, Pending (sleep)
-// Ready -> Running (round robin)
-// Running -> Ready (context switch due to time quota)
-// Running -> Pending (sleep)
-// Pending -> Ready (done sleeping)
 void sleep(uint32_t ms) {
   volatile struct TCB *task = tm.current_task;
   task->sleep_ticks = ms;
@@ -114,35 +108,12 @@ static inline void reschedule(void) {
   if (tm.num_tasks == 1) {
     return;
   }
-  // Update sleep status
 
   // Round robin
-  next_task_index++;
-  if (next_task_index >= tm.num_tasks) {
+  //next_task_index++;
+  if (++next_task_index >= tm.num_tasks) {
     next_task_index = 0;
   }
-
-  /*
-  struct TCB *task = NULL;
-  for (uint32_t i = 0; i < tm.num_tasks; i++) {
-    if (next_task_index >= tm.num_tasks) {
-      next_task_index = 0;
-    }
-*/
-    /*
-    if (tm.tasks[next_task_index]->state == TASK_READY) {
-      tm.tasks[next_task_index]->state = TASK_RUNNING;
-      task = tm.tasks[next_task_index];
-      break;
-    }
-    */
- //   next_task_index++;
-  //}
-
-  // if same task, do nothing
-//  if (task == NULL) {
- //   return;
- // }
 
   tm.next_task = tm.tasks[next_task_index];
   tm.save_task = tm.current_task;
@@ -203,12 +174,9 @@ static inline uint32_t elapsed_time(uint32_t later, uint32_t start){
 }
 
 void idle(void) {
-  int i = 0;
+  //int i = 0;
   while(1) {
-    //asm("nop");
-    printf("This is idle, %d\r\n", i++);
-    //spin(5000000); 
-    sleep(1000);
+    asm("nop");
   }
 }
 
@@ -225,7 +193,7 @@ void task2 (void) {
   int i = 10000000;
   while (1) {
     printf("This is task 2, %d\r\n", i--);
-    spin(1000000); 
+    sleep(3000);
   }
 }
 
@@ -239,7 +207,7 @@ void task3 (void) {
     printf("This is task 3. LED : %d\r\n", on);
     gpio_write(led, on);
     on = !on;
-    spin(1000000);
+    sleep(1000);
   }
 }
 
@@ -247,13 +215,13 @@ int main(void) {
   uart_init(UART3, 115200);   // Initialise UART
 
   struct TCB tcb_idle_task;
-  //struct TCB tcb_task2;
-  //struct TCB tcb_task3;
+  struct TCB tcb_task2;
+  struct TCB tcb_task3;
 
   create_task(&tcb_idle_task, idle);
   create_task(&tcb_task1, task1);
-  //create_task(&tcb_task2, task2);
-  //create_task(&tcb_task3, task3);
+  create_task(&tcb_task2, task2);
+  create_task(&tcb_task3, task3);
 
   start_scheduler();
   
