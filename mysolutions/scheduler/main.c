@@ -217,7 +217,7 @@ void idle(void) {
 struct TCB tcb_task1;
 void task1 (void) {
   int i = 0;
-  while (1) {
+  while (true) {
     mutex_lock(&mtx);
     int n = shared_counter;
     sleep(1000);
@@ -227,12 +227,13 @@ void task1 (void) {
 }
 
 void task2 (void) {
-  //int i = 0;
-  while (1) {
+  int i = 0;
+  while (true) {
     mutex_lock(&mtx);
     shared_counter++;
-    //printf("This is task 2, %d, shared_counter %d\r\n", i--, shared_counter);
     mutex_unlock(&mtx);
+    sleep(500);
+    printf("This is task 2, %d, shared_counter %d\r\n", i--, shared_counter);
   }
 }
 
@@ -242,7 +243,7 @@ void task3 (void) {
   RCC->AHB1ENR |= BIT(PINBANK(led));      // Enable GPIO clock for LED
   gpio_set_mode(led, GPIO_MODE_OUTPUT);
 
-  for (;;) {
+  while (true) {
     printf("This is task 3. LED : %d\r\n", on);
     gpio_write(led, on);
     on = !on;
