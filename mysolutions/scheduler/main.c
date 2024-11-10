@@ -40,6 +40,14 @@ enum{
   TASK_PENDING
 };
 
+void sleep(uint32_t ms) {
+  volatile struct TCB *task = tm.current_task;
+  task->sleep_ticks = ms;
+  while(task->sleep_ticks > 0){
+    __asm("nop");
+  }
+}
+
 // Mutex
 typedef struct {
   volatile uint8_t locked;
@@ -58,8 +66,6 @@ void mutex_lock(Mutex *mutex) {
       mutex->owner = (int)tm.current_task->task_id;
       return;
     }
-    //trigger_pendsv();
-    //__asm("WFI");
   }
 }
 
@@ -67,16 +73,10 @@ void mutex_unlock(Mutex *mutex) {
   if (mutex->owner == (int)tm.current_task->task_id) {
     mutex->locked = 0;
     mutex->owner = -1;
+    sleep(1);
   }
 }
 
-void sleep(uint32_t ms) {
-  volatile struct TCB *task = tm.current_task;
-  task->sleep_ticks = ms;
-  while(task->sleep_ticks > 0){
-    __asm("nop");
-  }
-}
 
 // Scheduler helper functions
 void create_task(struct TCB *tcb, void (*task_func)())
@@ -131,19 +131,21 @@ void start_scheduler() {
   start_first_task();
 }
 
-static uint32_t next_task_index = 1;
+static uint32_t next_task_index = 0;
 static inline void reschedule(void) {
   if (tm.num_tasks == 1) {
     return;
   }
 
   // Round robin
-  //next_task_index++;
-  if (++next_task_index >= tm.num_tasks) {
+  next_task_index++;
+  if (next_task_index >= tm.num_tasks) {
     next_task_index = 0;
   }
+  //next_task_index = (tm.current_task->task_id + 1) % tm.num_tasks;
 
   tm.next_task = tm.tasks[next_task_index];
+  //printf("next_task_id %lu \r\n", tm.next_task->task_id);
   tm.save_task = tm.current_task;
   tm.current_task->state = TASK_READY;
   tm.current_task = tm.next_task;
@@ -164,7 +166,9 @@ static volatile uint32_t s_ticks;
 void SysTick_Handler(void) {
   s_ticks++;
   update_sleep_ticks();
-  reschedule();
+  if (s_ticks % 10 == 0) {
+    reschedule();
+  }
 }
 
 static volatile uint32_t s_pendsv_count;
@@ -205,7 +209,6 @@ static inline uint32_t elapsed_time(uint32_t later, uint32_t start){
 static volatile int shared_counter = 0;
 
 void idle(void) {
-  //int i = 0;
   while(1) {
     asm("nop");
   }
@@ -220,19 +223,16 @@ void task1 (void) {
     sleep(1000);
     printf("This is task 1, %d, n = %d shared_counter %d\r\n", i++, n, shared_counter);
     mutex_unlock(&mtx);
-    //sleep(1000);
   }
 }
 
 void task2 (void) {
-  //int i = 9999999;
+  //int i = 0;
   while (1) {
     mutex_lock(&mtx);
     shared_counter++;
     //printf("This is task 2, %d, shared_counter %d\r\n", i--, shared_counter);
     mutex_unlock(&mtx);
-    //printf("This is task 2, %d, shared_counter %d\r\n", i++, shared_counter);
-    //sleep(10);
   }
 }
 
