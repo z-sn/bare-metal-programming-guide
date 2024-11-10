@@ -1,6 +1,8 @@
 #include "hal.h"
 
 static inline void reschedule(void);
+void PendSV_Handler(void);
+static inline uint32_t elapsed_time(uint32_t later, uint32_t start);
 
 // System SysTick
 #define SYSTICK_INITIAL_LOAD  (16000000 / 1000) // Every millisecond
@@ -16,8 +18,7 @@ struct TCB {
   uint32_t *task_function;
   uint32_t task_id;
   uint32_t stack[STACK_SIZE / sizeof(uint32_t)];
-  uint32_t sleep_start_ticks;
-  uint32_t sleep_end_ticks;
+  uint32_t sleep_ticks;
   uint32_t state;
 };
 
@@ -48,11 +49,13 @@ static volatile uint32_t s_ticks;
 // Running -> Pending (sleep)
 // Pending -> Ready (done sleeping)
 void sleep(uint32_t ms) {
-  tm.current_task->sleep_start_ticks = s_ticks;
-  tm.current_task->sleep_end_ticks = s_ticks + ms;
-  // Should switch to idle task
-  reschedule();
+  volatile struct TCB *task = tm.current_task;
+  task->sleep_ticks = ms;
+  while(task->sleep_ticks > 0){
+    __asm("nop");
+  }
 }
+
 // Scheduler helper functions
 void create_task(struct TCB *tcb, void (*task_func)())
 {
@@ -74,6 +77,7 @@ void create_task(struct TCB *tcb, void (*task_func)())
   tcb->task_id = tm.num_tasks + 1;
   tcb->sp = sp;
   tcb->state = TASK_READY;
+  tcb->sleep_ticks = 0;
   tm.tasks[tm.num_tasks] = tcb;
   tm.num_tasks++;
 }
@@ -110,18 +114,35 @@ static inline void reschedule(void) {
   if (tm.num_tasks == 1) {
     return;
   }
+  // Update sleep status
 
   // Round robin
+  next_task_index++;
+  if (next_task_index >= tm.num_tasks) {
+    next_task_index = 0;
+  }
+
+  /*
+  struct TCB *task = NULL;
   for (uint32_t i = 0; i < tm.num_tasks; i++) {
     if (next_task_index >= tm.num_tasks) {
       next_task_index = 0;
     }
+*/
+    /*
     if (tm.tasks[next_task_index]->state == TASK_READY) {
       tm.tasks[next_task_index]->state = TASK_RUNNING;
+      task = tm.tasks[next_task_index];
       break;
     }
-    next_task_index++;
-  }
+    */
+ //   next_task_index++;
+  //}
+
+  // if same task, do nothing
+//  if (task == NULL) {
+ //   return;
+ // }
 
   tm.next_task = tm.tasks[next_task_index];
   tm.save_task = tm.current_task;
@@ -130,11 +151,20 @@ static inline void reschedule(void) {
   trigger_pendsv();
 }
 
+void update_sleep_ticks(void) {
+  struct TCB *task;
+  for (uint32_t i = 0; i < tm.num_tasks; i++) {
+    task = tm.tasks[i];
+    if (task->sleep_ticks > 0){
+     task->sleep_ticks--;
+    }
+  }
+}
+
 void SysTick_Handler(void) {
   s_ticks++;
-  if (s_ticks % 2000 == 0) {
-    reschedule();
-  }
+  update_sleep_ticks();
+  reschedule();
 }
 
 static volatile uint32_t s_pendsv_count;
@@ -173,17 +203,21 @@ static inline uint32_t elapsed_time(uint32_t later, uint32_t start){
 }
 
 void idle(void) {
-  printf("Start idle task\r\n");
+  int i = 0;
   while(1) {
-    asm("nop");
+    //asm("nop");
+    printf("This is idle, %d\r\n", i++);
+    //spin(5000000); 
+    sleep(1000);
   }
 }
 
+struct TCB tcb_task1;
 void task1 (void) {
   int i = 0;
   while (1) {
     printf("This is task 1, %d\r\n", i++);
-    spin(1000000); 
+    sleep(10000);
   }
 }
 
@@ -213,7 +247,6 @@ int main(void) {
   uart_init(UART3, 115200);   // Initialise UART
 
   struct TCB tcb_idle_task;
-  struct TCB tcb_task1;
   //struct TCB tcb_task2;
   //struct TCB tcb_task3;
 
